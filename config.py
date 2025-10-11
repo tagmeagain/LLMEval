@@ -11,7 +11,7 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 # Base Model Configuration
 BASE_MODEL = {
-    "name": "gpt-3.5-turbo",  # Replace with your base model
+    "name": "gpt-4.1-nano",  # Base model
     "api_key": OPENAI_API_KEY,
     "temperature": 0.7,
     "max_tokens": 500
@@ -19,7 +19,7 @@ BASE_MODEL = {
 
 # Finetuned Model Configuration
 FINETUNED_MODEL = {
-    "name": "ft:gpt-3.5-turbo:your-org:custom-model:id",  # Replace with your finetuned model ID
+    "name": "gpt-4.1-nano",  # Finetuned model (using same model for testing)
     "api_key": OPENAI_API_KEY,
     "temperature": 0.7,
     "max_tokens": 500

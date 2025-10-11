@@ -131,8 +131,7 @@ class MultiTurnTester:
         # Evaluate using DeepEval's evaluate function
         results = evaluate(
             test_cases=[test_case],
-            metrics=metrics,
-            print_results=False
+            metrics=metrics
         )
         
         return {

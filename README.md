@@ -53,6 +53,11 @@ These are official DeepEval metrics designed specifically for multi-turn convers
 ### Step 1: Install Dependencies
 
 ```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# Install packages
 pip install -r requirements.txt
 ```
 
@@ -75,29 +80,35 @@ EOF
 ### Step 4: Organize Your Excel Files
 
 ```bash
-# Create input folder
-mkdir -p input
+# Create folders
+mkdir -p input evaluation_result
 
 # Place your Excel files in input/
-# Move your test files to input/ folder
+cp your_test.xlsx input/
 ```
 
 ### Step 5: Run Evaluation
 
 ```bash
-python3 run_evaluation.py
+# Auto-detect mode (recommended)
+python3 evaluate.py
+
+# Or specify file
+python3 evaluate.py input/your_test.xlsx
 ```
 
 **That's it!** ✅
 
 Results will be in `evaluation_result/` folder:
 - `*_results.json` - Evaluation scores
-- `*_with_responses.xlsx` - Excel with generated responses (if applicable)
+- `*_with_responses.xlsx` - Excel with generated responses (if generated)
 - `summary.json` - Combined summary
 
 ---
 
 ## 🎯 How It Works
+
+### Mode Detection (When using --mode auto)
 
 The script **automatically detects** what to do:
 
@@ -123,7 +134,23 @@ The script **automatically detects** what to do:
     Save to evaluation_result/
 ```
 
-**You don't need to choose** - the script figures it out! 🎉
+### Mode Override (Using --mode flag)
+
+```bash
+# Force generate even if responses exist
+python3 evaluate.py input/test.xlsx --mode generate
+  → Ignores existing responses, generates new ones
+
+# Force pre-recorded (error if responses missing)
+python3 evaluate.py input/test.xlsx --mode prerecorded
+  → Uses only Excel responses, errors if missing
+
+# Auto-detect (default)
+python3 evaluate.py input/test.xlsx --mode auto
+  → Smart detection based on columns
+```
+
+**You can control it OR let it auto-detect!** 🎉
 
 ---
 
@@ -1018,27 +1045,39 @@ response = gpt4(prompt)
 
 | File | Purpose | When to Use |
 |------|---------|-------------|
-| **`run_evaluation.py`** | **🌟 MAIN SCRIPT - Use This!** | Auto-detects mode, processes all files in input/ |
-| `evaluate_with_system_prompt.py` | Evaluate pre-recorded responses | Advanced: Single file with pre-recorded responses |
-| `live_evaluation_example.py` | Generate responses on-the-fly | Advanced: Single file, generate responses |
-| `excel_loader.py` | Loads Excel → ConversationalTestCase | Internal - called by scripts |
-| `multi_turn_testing.py` | Core evaluation framework | Internal - evaluation engine |
-| `config.py` | Model configurations | Edit to set your model IDs (if generating) |
+| **`evaluate.py`** | **🌟 PRIMARY CLI - Use This!** | Full-featured CLI with all options (mode, judge, metrics, etc.) |
+| `run_evaluation.py` | Simple batch processor | Auto-detect only, good for automation/scripts |
+| `evaluate_with_system_prompt.py` | Pre-recorded responses | Advanced: Single file with pre-recorded responses |
+| `live_evaluation_example.py` | Generate on-the-fly | Advanced: Single file, generate responses |
+| `excel_loader.py` | Excel parser | Internal - converts Excel to ConversationalTestCase |
+| `multi_turn_testing.py` | Evaluation engine | Internal - core evaluation framework |
+| `model_wrapper.py` | Model API wrapper | Internal - handles model calls |
+| `config.py` | Model configurations | Edit to set your model IDs (for generation) |
 | `system_prompt.txt` | System prompt | Create this with your prompt |
 | `requirements.txt` | Python dependencies | Install with pip |
-| `README.md` | This file - User guide | Documentation |
-| `TECHNICAL_ARCHITECTURE.md` | Technical documentation | For engineering team |
-| `example_excel_testing.py` | Creates Excel template | Run to create template |
+| `README.md` | User guide | This file |
+| `TECHNICAL_ARCHITECTURE.md` | Technical docs | For engineering team |
 
 ### Recommended Workflow
 
-**90% of users should just use**: `run_evaluation.py`
+**90% of users should use**: `evaluate.py`
 
-It automatically:
-- ✅ Finds all Excel files in `input/` folder
-- ✅ Detects if responses exist or need generation
-- ✅ Handles system prompt and initial conversation
-- ✅ Saves everything to `evaluation_result/` folder
+```bash
+# Auto-detect everything
+python3 evaluate.py input/test.xlsx
+
+# Force generate mode
+python3 evaluate.py input/test.xlsx --mode generate
+
+# Custom configuration
+python3 evaluate.py input/test.xlsx --judge gpt-4 --metrics all
+```
+
+**Benefits**:
+- ✅ Full control with CLI options
+- ✅ Auto-detect OR force specific mode
+- ✅ All configuration via command line
+- ✅ No code changes needed
 
 ---
 
@@ -1105,23 +1144,35 @@ cat evaluation_result/*_results.json
 
 ## ✅ Pre-Flight Checklist
 
-### Using run_evaluation.py (Recommended)
+### Before First Run
 
+- [ ] ✅ Created virtual environment: `python3 -m venv venv`
+- [ ] ✅ Activated venv: `source venv/bin/activate`
 - [ ] ✅ Installed dependencies: `pip install -r requirements.txt`
 - [ ] ✅ Created `.env` with `OPENAI_API_KEY=sk-...`
 - [ ] ✅ Created `system_prompt.txt`
 - [ ] ✅ Created `input/` folder: `mkdir -p input`
 - [ ] ✅ Placed Excel files in `input/` folder
 - [ ] ✅ Excel has at minimum:
-  - [ ] User Query column
-  - [ ] Optional: Model A Response, Model B Response (if pre-recorded)
+  - [ ] User Query column (required)
+  - [ ] Optional: Model A Response, Model B Response (for pre-recorded)
   - [ ] Optional: Initial Conversation (JSON format)
-- [ ] ✅ (Only if generating) Configured models in `config.py`
+- [ ] ✅ (Only if using --mode generate) Configured models in `config.py`
 
-**Run**: 
+### Run Commands
+
 ```bash
-python3 run_evaluation.py                    # All files in input/
-python3 run_evaluation.py my_test.xlsx       # Specific file
+# Activate virtual environment first
+source venv/bin/activate
+
+# Then run evaluation
+python3 evaluate.py input/test.xlsx
+
+# OR with options
+python3 evaluate.py input/test.xlsx --mode generate --judge gpt-4
+
+# OR simple batch
+python3 run_evaluation.py
 ```
 
 **Results**: Check `evaluation_result/` folder
@@ -1130,36 +1181,60 @@ python3 run_evaluation.py my_test.xlsx       # Specific file
 
 ## 🎯 Which Script Should I Use?
 
-### 🌟 Recommended: `run_evaluation.py` (90% of use cases)
+### 🌟 Recommended: `evaluate.py` (Best - Full CLI)
 
-**Use this script for most cases** - it automatically handles everything:
+**Use this for maximum flexibility** - supports all options:
 
 ```bash
-# Process all files in input/ folder
-python3 run_evaluation.py
+# Auto-detect everything
+python3 evaluate.py input/test.xlsx
 
-# OR process specific file(s)
-python3 run_evaluation.py test1.xlsx
-python3 run_evaluation.py test1.xlsx test2.xlsx
-python3 run_evaluation.py input/my_test.xlsx
+# Force generate mode
+python3 evaluate.py input/test.xlsx --mode generate
+
+# Force pre-recorded mode
+python3 evaluate.py input/test.xlsx --mode prerecorded
+
+# Custom configuration
+python3 evaluate.py input/test.xlsx --judge gpt-4 --metrics builtin
 ```
 
-**Automatically detects**:
-- ✅ If responses exist → uses them
-- ✅ If responses missing → generates them
-- ✅ Processes all files in input/ OR specified files
-- ✅ Saves to evaluation_result/
+**Features**:
+- ✅ Auto-detect OR force specific mode
+- ✅ All CLI options (judge, metrics, output, etc.)
+- ✅ Multiple files support
+- ✅ Verbose logging
+- ✅ Full help documentation
 
 ---
 
-### Alternative Scripts (Advanced)
+### Alternative: `run_evaluation.py` (Simple Auto-Detect)
+
+**Use this for basic batch processing**:
+
+```bash
+# Process all files in input/
+python3 run_evaluation.py
+
+# Process specific files
+python3 run_evaluation.py test1.xlsx test2.xlsx
+```
+
+**Features**:
+- ✅ Auto-detect mode only
+- ✅ Simple, no options needed
+- ✅ Good for scripts/automation
+
+---
+
+### Other Scripts (Specific Cases)
 
 | Script | Use Case |
 |--------|----------|
-| `evaluate_with_system_prompt.py` | Single file with pre-recorded responses only |
-| `live_evaluation_example.py` | Single file with live generation only |
+| `evaluate_with_system_prompt.py` | Pre-recorded responses only (advanced) |
+| `live_evaluation_example.py` | Generate mode only (advanced) |
 
-**Most users should use `run_evaluation.py` instead** ✅
+**90% of users should use `evaluate.py`** ✅
 
 ---
 
@@ -1169,21 +1244,81 @@ After setup, your project should look like this:
 
 ```
 DeepEval/
+├── venv/                           ← Virtual environment
 ├── input/                          ← Place Excel files here
-│   ├── test1.xlsx
-│   ├── test2.xlsx
+│   ├── test1.xlsx                  (with responses = pre-recorded mode)
+│   ├── queries.xlsx                (without responses = generate mode)
 │   └── test3.xlsx
 ├── evaluation_result/              ← Results saved here (auto-created)
 │   ├── test1_results.json
-│   ├── test1_with_responses.xlsx   (if generated)
-│   ├── test2_results.json
-│   ├── test2_with_responses.xlsx
+│   ├── queries_results.json
+│   ├── queries_with_responses.xlsx (generated responses added)
 │   └── summary.json
 ├── system_prompt.txt               ← Your system prompt
 ├── .env                            ← Your API key
-├── config.py                       ← Model configs
-├── run_evaluation.py               ← 🌟 MAIN SCRIPT
+├── config.py                       ← Model configs (for generation)
+├── evaluate.py                     ← 🌟 PRIMARY CLI (use this!)
+├── run_evaluation.py               ← Simple batch runner
 └── ...
+```
+
+---
+
+## 📋 Complete CLI Reference
+
+### `evaluate.py` - Full-Featured CLI
+
+**Syntax**:
+```bash
+python3 evaluate.py [FILES] [OPTIONS]
+```
+
+**Arguments**:
+```
+Positional:
+  FILES                 Excel file(s) to evaluate
+                        If omitted, processes all files in input/
+
+Options:
+  --mode, -m           auto|generate|prerecorded
+                       auto: Auto-detect (default)
+                       generate: Force on-the-fly generation
+                       prerecorded: Force use of Excel responses
+  
+  --system-prompt, -s  PATH
+                       Path to system prompt file
+                       Default: system_prompt.txt
+  
+  --judge, -j          MODEL
+                       Judge model for LLM-as-a-judge
+                       Default: gpt-5-nano
+  
+  --metrics            all|builtin
+                       all: All 7 metrics (default)
+                       builtin: Only 4 built-in metrics
+  
+  --output, -o         DIR
+                       Output directory
+                       Default: evaluation_result
+  
+  --verbose, -v        Enable verbose logging
+  
+  --help, -h           Show help message
+```
+
+**Examples**:
+```bash
+# 1. Auto-detect mode
+python3 evaluate.py input/test.xlsx
+
+# 2. Force generate
+python3 evaluate.py input/queries.xlsx --mode generate
+
+# 3. Multiple files with custom judge
+python3 evaluate.py input/test1.xlsx input/test2.xlsx --judge gpt-4
+
+# 4. All options
+python3 evaluate.py input/test.xlsx -m generate -j gpt-4 -s custom.txt --metrics all -v
 ```
 
 **Ready to test!** 🚀

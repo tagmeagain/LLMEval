@@ -47,7 +47,7 @@ def evaluate_single_file(
     system_prompt: str,
     output_dir: str = "evaluation_result",
     use_all_metrics: bool = True,
-    judge_model: str = "gpt-4"
+    judge_model: str = "gpt-4.1-nano"
 ):
     """
     Evaluate a single Excel file - auto-detects mode
@@ -207,8 +207,9 @@ def evaluate_single_file(
         # Convert to ConversationalTestCase for evaluation
         from deepeval.test_case import ConversationalTestCase, Turn
         
-        base_turns = [Turn(role=t["role"], content=t["content"]) for t in base_conversation]
-        finetuned_turns = [Turn(role=t["role"], content=t["content"]) for t in finetuned_conversation]
+        # Filter out system messages (Turn only accepts 'user' or 'assistant')
+        base_turns = [Turn(role=t["role"], content=t["content"]) for t in base_conversation if t["role"] in ["user", "assistant"]]
+        finetuned_turns = [Turn(role=t["role"], content=t["content"]) for t in finetuned_conversation if t["role"] in ["user", "assistant"]]
         
         base_test_case = ConversationalTestCase(
             turns=base_turns,
@@ -271,6 +272,14 @@ def evaluate_single_file(
         json.dump(output_data, f, indent=2, default=str)
     
     print(f"\n✅ JSON results saved: {json_output_path}")
+    
+    # Create formatted outputs
+    try:
+        from format_results import process_evaluation_result
+        print(f"📝 Creating formatted outputs...")
+        process_evaluation_result(json_output_path, output_dir)
+    except Exception as e:
+        print(f"⚠️  Could not create formatted outputs: {e}")
     
     # Save Excel with responses (if generated)
     if mode == "generate":
@@ -359,8 +368,10 @@ def main():
         print()
     
     # Configuration
+    judge_model = os.getenv("JUDGE_MODEL", "gpt-4.1-nano")
+    
     print("⚙️  Configuration:")
-    print(f"   - Judge Model: gpt-4")
+    print(f"   - Judge Model: {judge_model}")
     print(f"   - Metrics: All 7 metrics")
     print(f"   - Output Directory: evaluation_result/")
     print()
@@ -379,7 +390,7 @@ def main():
                 system_prompt=system_prompt,
                 output_dir="evaluation_result",
                 use_all_metrics=True,
-                judge_model="gpt-4"
+                judge_model=judge_model
             )
             all_results.append(result)
         except Exception as e:
@@ -486,7 +497,7 @@ if __name__ == "__main__":
         print("  - config.py with model configurations (if generating)")
         print()
         
-        return
+        sys.exit(0)
     
     # Run main evaluation
     try:

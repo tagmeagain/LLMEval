@@ -16,7 +16,7 @@ Test and compare Base vs Finetuned models using multi-turn conversations loaded 
 
 ---
 
-## 📊 The 7 Metrics
+## The 7 Metrics
 
 All metrics use **LLM-as-a-judge** evaluation:
 
@@ -1321,5 +1321,5 @@ python3 evaluate.py input/test1.xlsx input/test2.xlsx --judge gpt-4
 python3 evaluate.py input/test.xlsx -m generate -j gpt-4 -s custom.txt --metrics all -v
 ```
 
-**Ready to test!** 🚀
+**Ready to test!** 
 

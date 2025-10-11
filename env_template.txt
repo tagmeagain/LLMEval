@@ -1,0 +1,8 @@
+# Copy this to .env file
+# OpenAI API Key (required for LLM-as-a-judge metrics)
+OPENAI_API_KEY=your-openai-api-key-here
+
+# Optional: If using DeepEval's hosted evaluation
+DEEPEVAL_API_KEY=your-deepeval-api-key-here
+
+

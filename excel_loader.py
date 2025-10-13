@@ -57,8 +57,9 @@ class ExcelConversationLoader:
                     pass  # No initial conversation or invalid JSON
             
             # Get metadata
+            # chatbot_role is REQUIRED for Role Adherence metric
             metadata = {
-                "chatbot_role": None,
+                "chatbot_role": "helpful AI assistant",  # Default if not provided
                 "scenario": None,
                 "expected_outcome": None
             }
@@ -135,8 +136,14 @@ class ExcelConversationLoader:
             
             # Get metadata
             metadata = {}
+            
+            # chatbot_role is REQUIRED for Role Adherence metric
             if "Chatbot Role" in self.df.columns and pd.notna(row["Chatbot Role"]):
                 metadata["chatbot_role"] = str(row["Chatbot Role"]).strip()
+            else:
+                # Default chatbot role if not provided
+                metadata["chatbot_role"] = "helpful AI assistant"
+            
             if "Scenario" in self.df.columns and pd.notna(row["Scenario"]):
                 metadata["scenario"] = str(row["Scenario"]).strip()
             if "Expected Outcome" in self.df.columns and pd.notna(row["Expected Outcome"]):

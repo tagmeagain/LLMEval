@@ -96,11 +96,16 @@ def convert_excel_format(input_path: str, output_path: str):
             'User Query': str(row.get('query', '')).strip() if pd.notna(row.get('query')) else '',
             'Model A Response': str(row.get('response_A', '')).strip() if pd.notna(row.get('response_A')) else '',
             'Model B Response': str(row.get('response_B', '')).strip() if pd.notna(row.get('response_B')) else '',
+            'Chatbot Role': 'helpful AI assistant',  # Default role, can be customized
         }
         
         # Optionally include test_id as metadata
         if 'test_id' in row and pd.notna(row['test_id']):
             converted_row['Test ID'] = row['test_id']
+        
+        # Check if user's input has a chatbot_role column
+        if 'chatbot_role' in row and pd.notna(row['chatbot_role']):
+            converted_row['Chatbot Role'] = str(row['chatbot_role']).strip()
         
         converted_data.append(converted_row)
     
@@ -111,7 +116,7 @@ def convert_excel_format(input_path: str, output_path: str):
     column_order = []
     if 'Test ID' in converted_df.columns:
         column_order.append('Test ID')
-    column_order.extend(['Initial Conversation', 'User Query', 'Model A Response', 'Model B Response'])
+    column_order.extend(['Initial Conversation', 'User Query', 'Model A Response', 'Model B Response', 'Chatbot Role'])
     
     converted_df = converted_df[column_order]
     

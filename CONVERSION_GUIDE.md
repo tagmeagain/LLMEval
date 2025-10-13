@@ -12,6 +12,8 @@ Your Excel should have these columns:
 - `query` - The user's query/question
 - `response_A` - Model A's response (e.g., base model)
 - `response_B` - Model B's response (e.g., finetuned model)
+- `chatbot_role` - (Optional) The chatbot's role (e.g., "customer support agent", "technical assistant")
+  - If not provided, defaults to "helpful AI assistant"
 
 ### Example Input Format
 
@@ -26,6 +28,9 @@ The testing framework expects:
 - `User Query` - The user's question
 - `Model A Response` - Response from Model A
 - `Model B Response` - Response from Model B
+- `Chatbot Role` - Role description (e.g., "customer support agent", "helpful AI assistant")
+  - **Required** for the Role Adherence metric to work
+  - Auto-set to "helpful AI assistant" if not provided
 
 ## How to Convert
 
@@ -49,6 +54,7 @@ The script will:
    - `query` → `User Query`
    - `response_A` → `Model A Response`
    - `response_B` → `Model B Response`
+   - `chatbot_role` → `Chatbot Role` (defaults to "helpful AI assistant" if not provided)
 4. Save the converted Excel
 
 ### Step 3: Use with Testing Framework

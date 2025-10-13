@@ -2,7 +2,59 @@
 
 LLM-as-a-judge evaluation framework for comparing base and finetuned models on multi-turn conversations.
 
+<<<<<<< HEAD
 ## Quick Start
+=======
+## ✨ Features
+
+✅ **Excel Support** - Load conversations with Model A and Model B responses  
+✅ **System Prompt Integration** - Load system prompts from separate file  
+✅ **Initial Conversation Support** - Include prior conversation context as JSON  
+✅ **7 Evaluation Metrics** - Comprehensive multi-turn conversation assessment  
+✅ **LLM-as-a-Judge** - Uses GPT-4 (or custom) for nuanced evaluation  
+✅ **ConversationalTestCase** - Proper DeepEval format with Turn objects  
+✅ **Easy Comparison** - Side-by-side Model A vs Model B evaluation  
+✅ **Batch Processing** - Evaluate multiple Excel files at once  
+✅ **JSON Results** - Detailed scores, reasoning, and comparisons  
+
+---
+
+## The 7 Metrics
+
+All metrics use **LLM-as-a-judge** evaluation:
+
+### Custom Conversational Metrics
+
+These use DeepEval's **Conversational GEval** framework (designed for multi-turn conversations):
+
+1. **Coherence** - Logical flow and clarity (Custom Conversational GEval)
+2. **Contextual Understanding** - Context awareness (Custom Conversational GEval)
+3. **Helpfulness** - Practical value (Custom Conversational GEval)
+
+### DeepEval Built-in Multi-Turn Metrics
+
+These are official DeepEval metrics designed specifically for multi-turn conversations:
+
+4. **Knowledge Retention** ✅ - Remembers information from earlier turns  
+   [📚 Official Docs](https://deepeval.com/docs/metrics-knowledge-retention)
+
+5. **Turn Relevancy** ✅ - Each response is relevant to user query  
+   [📚 Official Docs](https://deepeval.com/docs/metrics-turn-relevancy)
+
+6. **Role Adherence** ✅ - Maintains consistent role and tone  
+   [📚 Official Docs](https://deepeval.com/docs/metrics-role-adherence)
+
+7. **Conversation Completeness** ✅ - All queries addressed, satisfactory conclusion  
+   [📚 Official Docs](https://deepeval.com/docs/metrics-conversation-completeness)
+
+> **Note**: Metrics 1-3 use **Conversational GEval** (for multi-turn conversations). Metrics 4-7 are built-in DeepEval metrics. All 7 metrics are proper **conversational metrics** designed to evaluate `ConversationalTestCase` objects as per [DeepEval documentation](https://deepeval.com/docs/evaluation-multiturn-test-cases).
+
+---
+
+## 🚀 Quick Start (3 Minutes)
+
+### Step 1: Install Dependencies
+>>>>>>> 94da8a49f6e9d12632b1d3afea6ac6303c3b2c86
 
 ```bash
 # 1. Install
@@ -154,6 +206,17 @@ A: Yes! Edit `system_prompt.txt` or create your own and use `--system-prompt my_
 
 See `TECHNICAL_ARCHITECTURE.md` for technical details.
 
+<<<<<<< HEAD
 ## License
+=======
+# 3. Multiple files with custom judge
+python3 evaluate.py input/test1.xlsx input/test2.xlsx --judge gpt-4
+
+# 4. All options
+python3 evaluate.py input/test.xlsx -m generate -j gpt-4 -s custom.txt --metrics all -v
+```
+
+**Ready to test!** 
+>>>>>>> 94da8a49f6e9d12632b1d3afea6ac6303c3b2c86
 
 MIT

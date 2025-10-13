@@ -206,9 +206,6 @@ A: Yes! Edit `system_prompt.txt` or create your own and use `--system-prompt my_
 
 See `TECHNICAL_ARCHITECTURE.md` for technical details.
 
-<<<<<<< HEAD
-## License
-=======
 # 3. Multiple files with custom judge
 python3 evaluate.py input/test1.xlsx input/test2.xlsx --judge gpt-4
 
@@ -217,6 +214,5 @@ python3 evaluate.py input/test.xlsx -m generate -j gpt-4 -s custom.txt --metrics
 ```
 
 **Ready to test!** 
->>>>>>> 94da8a49f6e9d12632b1d3afea6ac6303c3b2c86
 
 MIT

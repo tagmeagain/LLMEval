@@ -20,11 +20,7 @@ from deepeval.metrics import (
 
 from model_wrapper import ModelWrapper
 from config import BASE_MODEL, FINETUNED_MODEL
-from test_cases import (
-    create_customer_support_test_cases,
-    create_conversational_test_cases,
-    create_deepeval_conversational_test_case
-)
+# Test cases removed - use Excel files instead
 
 
 class MultiTurnTester:
@@ -138,6 +134,30 @@ class MultiTurnTester:
             "model": model_name,
             "test_case": test_case,
             "metrics": results
+        }
+    
+    def evaluate_from_excel_test_cases(self, model_a_test_case: ConversationalTestCase, model_b_test_case: ConversationalTestCase, test_name: str) -> dict:
+        """
+        Evaluate both models from pre-constructed test cases
+        
+        Args:
+            model_a_test_case: Test case for Model A (base)
+            model_b_test_case: Test case for Model B (finetuned)
+            test_name: Name of the test
+        
+        Returns:
+            Dictionary with both evaluations
+        """
+        print("Evaluating Model A (Base)...")
+        model_a_results = self.evaluate_conversation(model_a_test_case, "Model A (Base)")
+        
+        print("\nEvaluating Model B (Finetuned)...")
+        model_b_results = self.evaluate_conversation(model_b_test_case, "Model B (Finetuned)")
+        
+        return {
+            "test_name": test_name,
+            "model_a_evaluation": model_a_results,
+            "model_b_evaluation": model_b_results
         }
     
     def compare_models_arena(

@@ -1,308 +1,314 @@
 #!/usr/bin/env python3
 """
-Unified Evaluation CLI - All possible ways to run
-Modularized command-line interface for LLM evaluation
+Main Evaluation Script - DeepEval Multi-Turn Conversation Testing
 
-Usage Examples:
-    # Auto-detect mode (recommended)
+Usage:
+    # Auto-detect mode
     python3 evaluate.py input/test.xlsx
     
-    # Force generate mode (even if responses exist)
+    # Force generate mode
     python3 evaluate.py input/test.xlsx --mode generate
     
-    # Force pre-recorded mode (error if no responses)
+    # Force pre-recorded mode  
     python3 evaluate.py input/test.xlsx --mode prerecorded
     
-    # Multiple files with auto-detection
-    python3 evaluate.py input/test1.xlsx input/test2.xlsx
-    
-    # Custom system prompt
-    python3 evaluate.py input/test.xlsx --system-prompt prompts/custom.txt
-    
-    # Custom judge model
-    python3 evaluate.py input/test.xlsx --judge gpt-4
-    
-    # Use only 4 built-in metrics
-    python3 evaluate.py input/test.xlsx --metrics builtin
-    
-    # Combine options
-    python3 evaluate.py input/test.xlsx --mode generate --judge gpt-3.5-turbo --metrics builtin
+    # Custom options
+    python3 evaluate.py input/test.xlsx --judge gpt-4 --metrics builtin
 """
 
 import argparse
 import sys
 import os
-from run_evaluation import evaluate_single_file, detect_excel_mode, ensure_directories
+import glob
+import json
 import pandas as pd
+from datetime import datetime
+from typing import Dict, List
+
+# Import our modules
+from multi_turn_testing import MultiTurnTester
+from excel_loader import ExcelConversationLoader
+from config import BASE_MODEL, FINETUNED_MODEL
 
 
-def parse_arguments():
+def ensure_directories():
+    """Create necessary directories"""
+    os.makedirs("input", exist_ok=True)
+    os.makedirs("evaluation_result", exist_ok=True)
+
+
+def detect_mode(excel_path: str) -> str:
+    """
+    Detect evaluation mode based on Excel columns
+    
+    Returns:
+        'prerecorded' if Model A/B Response columns exist
+        'generate' if only User Query exists
+    """
+    df = pd.read_excel(excel_path)
+    has_model_a = "Model A Response" in df.columns
+    has_model_b = "Model B Response" in df.columns
+    
+    if has_model_a and has_model_b:
+        return "prerecorded"
+    else:
+        return "generate"
+
+
+def evaluate_file(
+    excel_path: str,
+    mode: str,
+    system_prompt: str,
+    judge_model: str,
+    use_all_metrics: bool,
+    output_dir: str
+) -> Dict:
+    """
+    Evaluate a single Excel file
+    
+    Args:
+        excel_path: Path to Excel file
+        mode: 'generate' or 'prerecorded'
+        system_prompt: System prompt content
+        judge_model: Judge model name
+        use_all_metrics: Use all 7 metrics or just 4
+        output_dir: Output directory
+    
+    Returns:
+        Results dictionary
+    """
+    filename = os.path.basename(excel_path)
+    print(f"\n{'='*80}")
+    print(f"EVALUATING: {filename}")
+    print(f"{'='*80}\n")
+    print(f"Mode: {mode.upper()}")
+    print()
+    
+    # Initialize tester
+    tester = MultiTurnTester(
+        BASE_MODEL,
+        FINETUNED_MODEL,
+        judge_model=judge_model,
+        use_all_metrics=use_all_metrics
+    )
+    
+    if mode == "prerecorded":
+        # Use Excel responses
+        print("✓ Using pre-recorded responses from Excel\n")
+        
+        loader = ExcelConversationLoader(excel_path)
+        model_a_test_case, model_b_test_case = loader.parse_conversation_from_excel()
+        
+        # Add system prompt as context
+        if system_prompt:
+            model_a_test_case.context = [system_prompt]
+            model_b_test_case.context = [system_prompt]
+        
+        print(f"Loaded {len(model_a_test_case.turns)} turns\n")
+        
+    else:  # generate mode
+        # Generate responses on-the-fly
+        print("✓ Generating responses on-the-fly\n")
+        
+        # Parse Excel
+        df = pd.read_excel(excel_path)
+        
+        # Extract user queries
+        user_queries = []
+        for idx, row in df.iterrows():
+            if "User Query" in df.columns and pd.notna(row["User Query"]):
+                query = str(row["User Query"]).strip()
+                if query:
+                    user_queries.append(query)
+        
+        print(f"Extracted {len(user_queries)} user queries\n")
+        
+        # Build conversation
+        full_conversation = []
+        if system_prompt:
+            full_conversation.append({"role": "system", "content": system_prompt})
+        
+        for query in user_queries:
+            full_conversation.append({"role": "user", "content": query})
+        
+        # Generate responses
+        print("🤖 Calling models to generate responses...\n")
+        base_conv, finetuned_conv = tester.generate_conversations(full_conversation)
+        
+        # Convert to test cases
+        from deepeval.test_case import ConversationalTestCase, Turn
+        
+        # Filter out system messages
+        base_turns = [Turn(role=t["role"], content=t["content"]) for t in base_conv if t["role"] in ["user", "assistant"]]
+        finetuned_turns = [Turn(role=t["role"], content=t["content"]) for t in finetuned_conv if t["role"] in ["user", "assistant"]]
+        
+        # Get optional metadata from Excel
+        chatbot_role = None
+        scenario = None
+        if "Chatbot Role" in df.columns and pd.notna(df.iloc[0]["Chatbot Role"]):
+            chatbot_role = str(df.iloc[0]["Chatbot Role"]).strip()
+        if "Scenario" in df.columns and pd.notna(df.iloc[0]["Scenario"]):
+            scenario = str(df.iloc[0]["Scenario"]).strip()
+        
+        model_a_test_case = ConversationalTestCase(
+            turns=base_turns,
+            context=[system_prompt] if system_prompt else None,
+            chatbot_role=chatbot_role,
+            scenario=scenario
+        )
+        
+        model_b_test_case = ConversationalTestCase(
+            turns=finetuned_turns,
+            context=[system_prompt] if system_prompt else None,
+            chatbot_role=chatbot_role,
+            scenario=scenario
+        )
+        
+        # Save generated responses to Excel
+        output_excel_data = df.copy()
+        model_a_responses = [t.content for t in base_turns if t.role == "assistant"]
+        model_b_responses = [t.content for t in finetuned_turns if t.role == "assistant"]
+        output_excel_data["Model A Response"] = pd.Series(model_a_responses[:len(output_excel_data)])
+        output_excel_data["Model B Response"] = pd.Series(model_b_responses[:len(output_excel_data)])
+        
+        excel_out_path = os.path.join(output_dir, filename.replace('.xlsx', '_with_responses.xlsx'))
+        output_excel_data.to_excel(excel_out_path, index=False)
+        print(f"✓ Saved Excel with responses: {excel_out_path}\n")
+    
+    # Evaluate
+    print("📊 Evaluating with all metrics...\n")
+    result = tester.evaluate_from_excel_test_cases(
+        model_a_test_case,
+        model_b_test_case,
+        filename
+    )
+    
+    # Save results
+    result_data = {
+        "file": filename,
+        "mode": mode,
+        "timestamp": datetime.now().isoformat(),
+        "results": result
+    }
+    
+    json_path = os.path.join(output_dir, filename.replace('.xlsx', '_results.json'))
+    with open(json_path, 'w') as f:
+        json.dump(result_data, f, indent=2, default=str)
+    
+    print(f"\n✅ Results saved: {json_path}")
+    
+    # Create clean outputs
+    try:
+        from create_clean_output import process_result_file
+        process_result_file(json_path)
+    except:
+        pass
+    
+    return result_data
+
+
+def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(
-        description="DeepEval Multi-Turn Conversation Evaluation",
+        description='DeepEval Multi-Turn Conversation Evaluation',
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
+        epilog='''
 Examples:
-  # Auto-detect mode (recommended)
   %(prog)s input/test.xlsx
-  
-  # Force generate responses on-the-fly
   %(prog)s input/test.xlsx --mode generate
-  
-  # Use pre-recorded responses only
-  %(prog)s input/test.xlsx --mode prerecorded
-  
-  # Multiple files
-  %(prog)s input/test1.xlsx input/test2.xlsx
-  
-  # Custom configuration
-  %(prog)s input/test.xlsx --judge gpt-4 --metrics all
-  
-  # All options
-  %(prog)s input/test.xlsx --mode generate --system-prompt custom.txt --judge gpt-4 --metrics builtin
-        """
+  %(prog)s input/test.xlsx --judge gpt-4
+  %(prog)s test1.xlsx test2.xlsx --metrics builtin
+        '''
     )
     
-    # Positional arguments
-    parser.add_argument(
-        'excel_files',
-        nargs='*',
-        help='Excel file(s) to evaluate. If not provided, processes all files in input/ folder'
-    )
-    
-    # Mode control
-    parser.add_argument(
-        '--mode', '-m',
-        choices=['auto', 'generate', 'prerecorded'],
-        default='auto',
-        help='''Evaluation mode:
-  auto: Auto-detect based on Excel columns (default)
-  generate: Force on-the-fly generation (requires model config)
-  prerecorded: Force use of pre-recorded responses (error if missing)'''
-    )
-    
-    # System prompt
-    parser.add_argument(
-        '--system-prompt', '-s',
-        default='system_prompt.txt',
-        help='Path to system prompt file (default: system_prompt.txt)'
-    )
-    
-    # Judge model
-    parser.add_argument(
-        '--judge', '-j',
-        default='gpt-4.1-nano',
-        help='Judge model for evaluation (default: gpt-4.1-nano)'
-    )
-    
-    # Metrics selection
-    parser.add_argument(
-        '--metrics',
-        choices=['all', 'builtin'],
-        default='all',
-        help='''Metrics to use:
-  all: All 7 metrics (3 custom + 4 built-in) [default]
-  builtin: Only 4 built-in DeepEval metrics'''
-    )
-    
-    # Output directory
-    parser.add_argument(
-        '--output', '-o',
-        default='evaluation_result',
-        help='Output directory for results (default: evaluation_result)'
-    )
-    
-    # Verbose mode
-    parser.add_argument(
-        '--verbose', '-v',
-        action='store_true',
-        help='Enable verbose output'
-    )
+    parser.add_argument('excel_files', nargs='*', help='Excel file(s) to evaluate')
+    parser.add_argument('--mode', '-m', choices=['auto', 'generate', 'prerecorded'], default='auto',
+                        help='Evaluation mode (default: auto)')
+    parser.add_argument('--system-prompt', '-s', default='system_prompt.txt',
+                        help='System prompt file (default: system_prompt.txt)')
+    parser.add_argument('--judge', '-j', default='gpt-4.1-nano',
+                        help='Judge model (default: gpt-4.1-nano)')
+    parser.add_argument('--metrics', choices=['all', 'builtin'], default='all',
+                        help='Metrics to use (default: all)')
+    parser.add_argument('--output', '-o', default='evaluation_result',
+                        help='Output directory (default: evaluation_result)')
     
     return parser.parse_args()
 
 
-def validate_mode(excel_path, mode):
-    """
-    Validate and determine final mode
-    
-    Args:
-        excel_path: Path to Excel file
-        mode: Requested mode ('auto', 'generate', 'prerecorded')
-    
-    Returns:
-        Final mode to use ('generate' or 'prerecorded')
-    """
-    df = pd.read_excel(excel_path)
-    detected_mode = detect_excel_mode(df)
-    
-    if mode == 'auto':
-        # Auto-detection
-        return detected_mode
-    elif mode == 'generate':
-        # Force generate mode
-        if detected_mode == 'prerecorded':
-            print(f"⚠️  Warning: Excel has Model A/B Response columns but forcing GENERATE mode")
-            print(f"   Existing responses will be ignored, new ones will be generated\n")
-        return 'generate'
-    elif mode == 'prerecorded':
-        # Force pre-recorded mode
-        if detected_mode == 'generate':
-            raise ValueError(
-                f"Error: Excel file '{excel_path}' is missing Model A Response and/or Model B Response columns.\n"
-                f"Cannot use --mode prerecorded without these columns.\n"
-                f"Either add the columns or use --mode generate"
-            )
-        return 'prerecorded'
-    
-    return detected_mode
-
-
 def main():
-    """Main CLI entry point"""
-    args = parse_arguments()
+    """Main entry point"""
+    args = parse_args()
     
     print("\n" + "="*80)
-    print("DEEPEVAL MULTI-TURN EVALUATION CLI")
+    print("DEEPEVAL MULTI-TURN EVALUATION")
     print("="*80 + "\n")
     
-    # Ensure directories
     ensure_directories()
     
     # Load system prompt
-    system_prompt = None
+    system_prompt = ""
     if os.path.exists(args.system_prompt):
-        if args.verbose:
-            print(f"📄 Loading system prompt: {args.system_prompt}")
-        with open(args.system_prompt, "r") as f:
+        with open(args.system_prompt) as f:
             system_prompt = f.read().strip()
-        print(f"✓ System prompt loaded ({len(system_prompt)} characters)")
-    else:
-        print(f"⚠️  System prompt not found: {args.system_prompt}")
-        print("   Continuing without system prompt...")
-    print()
+        print(f"✓ Loaded system prompt: {args.system_prompt}\n")
     
-    # Determine files to process
+    # Get Excel files
     excel_files = []
-    
     if args.excel_files:
-        # Use specified files
-        for file_arg in args.excel_files:
-            # Try different path combinations
-            possible_paths = [
-                file_arg,
-                os.path.join('input', file_arg),
-                os.path.join('input', os.path.basename(file_arg))
-            ]
-            
-            found = False
-            for path in possible_paths:
-                if os.path.exists(path):
-                    excel_files.append(path)
-                    found = True
-                    break
-            
-            if not found:
-                print(f"❌ File not found: {file_arg}")
-                print(f"   Tried: {', '.join(possible_paths)}\n")
+        for f in args.excel_files:
+            if os.path.exists(f):
+                excel_files.append(f)
+            elif os.path.exists(os.path.join('input', f)):
+                excel_files.append(os.path.join('input', f))
     else:
-        # Use all files in input/
-        import glob
-        excel_files = glob.glob("input/*.xlsx") + glob.glob("input/*.xls")
-        
-        if not excel_files:
-            print("❌ No Excel files found\n")
-            print("Usage:")
-            print("  python3 evaluate.py <file.xlsx>")
-            print("  python3 evaluate.py input/test1.xlsx input/test2.xlsx")
-            print("  python3 evaluate.py  (processes all files in input/)\n")
-            return
+        excel_files = glob.glob("input/*.xlsx")
     
     if not excel_files:
-        print("❌ No valid Excel files to process\n")
+        print("❌ No Excel files found")
+        print("\nUsage: python3 evaluate.py input/test.xlsx")
+        print("   or: python3 evaluate.py  (processes all in input/)\n")
         return
     
     print(f"📂 Files to process: {len(excel_files)}")
     for f in excel_files:
-        print(f"   - {f}")
+        print(f"   - {os.path.basename(f)}")
     print()
     
-    # Configuration summary
-    print("⚙️  Configuration:")
-    print(f"   - Mode: {args.mode.upper()}")
-    print(f"   - Judge Model: {args.judge}")
-    print(f"   - Metrics: {'All 7 metrics' if args.metrics == 'all' else 'Only 4 built-in metrics'}")
-    print(f"   - Output Directory: {args.output}/")
-    print()
+    # Configuration
+    use_all_metrics = (args.metrics == 'all')
+    print(f"⚙️  Configuration:")
+    print(f"   Judge Model: {args.judge}")
+    print(f"   Metrics: {'All 7' if use_all_metrics else 'Only 4 built-in'}")
+    print(f"   Mode: {args.mode.upper()}")
     
     # Process each file
-    all_results = []
-    use_all_metrics = (args.metrics == 'all')
-    
-    for idx, excel_file in enumerate(excel_files, 1):
-        print(f"\n{'='*80}")
-        print(f"FILE {idx}/{len(excel_files)}: {os.path.basename(excel_file)}")
-        print(f"{'='*80}\n")
-        
+    for excel_file in excel_files:
         try:
-            # Validate and determine mode
-            final_mode = validate_mode(excel_file, args.mode)
-            
-            print(f"📊 Mode: {final_mode.upper()}")
-            
-            if final_mode == 'generate':
-                print("   → Will generate responses on-the-fly from both models")
+            # Determine mode
+            if args.mode == 'auto':
+                mode = detect_mode(excel_file)
             else:
-                print("   → Will use pre-recorded responses from Excel")
-            print()
+                mode = args.mode
             
             # Evaluate
-            result = evaluate_single_file(
-                excel_path=excel_file,
-                system_prompt=system_prompt,
-                output_dir=args.output,
-                use_all_metrics=use_all_metrics,
-                judge_model=args.judge
+            evaluate_file(
+                excel_file,
+                mode,
+                system_prompt,
+                args.judge,
+                use_all_metrics,
+                args.output
             )
-            
-            all_results.append(result)
-            
         except Exception as e:
-            print(f"\n❌ Error processing {excel_file}:")
-            print(f"   {str(e)}\n")
-            if args.verbose:
-                import traceback
-                traceback.print_exc()
+            print(f"\n❌ Error: {e}\n")
             continue
     
-    # Summary
-    if all_results:
-        print("\n" + "="*80)
-        print("EVALUATION SUMMARY")
-        print("="*80 + "\n")
-        
-        print(f"Total files processed: {len(all_results)}/{len(excel_files)}")
-        print(f"Pre-recorded: {sum(1 for r in all_results if r.get('mode') == 'pre_recorded')}")
-        print(f"Generated: {sum(1 for r in all_results if r.get('mode') == 'generated')}")
-        print()
-        
-        print(f"Results saved to: {args.output}/")
-        print()
-        
-        print("="*80)
-        print("✅ EVALUATION COMPLETE")
-        print("="*80)
-    else:
-        print("\n❌ No files were successfully processed\n")
+    print("\n" + "="*80)
+    print("✅ EVALUATION COMPLETE")
+    print("="*80)
+    print(f"\nResults in: {args.output}/\n")
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print("\n\n⚠️  Interrupted by user")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n❌ Fatal error: {e}\n")
-        sys.exit(1)
-
+    main()

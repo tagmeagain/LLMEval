@@ -2,6 +2,9 @@
 # OpenAI API Key (required for LLM-as-a-judge metrics)
 OPENAI_API_KEY=your-openai-api-key-here
 
+# Optional: Judge model for evaluations (default: gpt-4.1-nano)
+JUDGE_MODEL=gpt-4
+
 # Optional: If using DeepEval's hosted evaluation
 DEEPEVAL_API_KEY=your-deepeval-api-key-here
 

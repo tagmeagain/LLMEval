@@ -272,13 +272,16 @@ Each ROW in Excel = One separate conversation to evaluate
         '''
     )
     
+    # Get default judge model from .env or use fallback
+    default_judge = os.getenv('JUDGE_MODEL', 'gpt-4.1-nano')
+    
     parser.add_argument('excel_files', nargs='*', help='Excel file(s) to evaluate')
     parser.add_argument('--mode', '-m', choices=['auto', 'generate', 'prerecorded'], default='auto',
                         help='Evaluation mode (default: auto)')
     parser.add_argument('--system-prompt', '-s', default='system_prompt.txt',
                         help='System prompt file (default: system_prompt.txt)')
-    parser.add_argument('--judge', '-j', default='gpt-4.1-nano',
-                        help='Judge model (default: gpt-4.1-nano)')
+    parser.add_argument('--judge', '-j', default=default_judge,
+                        help=f'Judge model (default: {default_judge})')
     parser.add_argument('--metrics', choices=['all', 'builtin'], default='all',
                         help='Metrics to use (default: all)')
     parser.add_argument('--output', '-o', default='evaluation_result',

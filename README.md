@@ -2,12 +2,10 @@
 
 LLM-as-a-judge evaluation framework for comparing base and finetuned models on multi-turn conversations.
 
-<<<<<<< HEAD
-## Quick Start
-=======
 ## ✨ Features
 
 ✅ **Excel Support** - Load conversations with Model A and Model B responses  
+✅ **Excel Format Converter** - Convert custom Excel formats to required format  
 ✅ **System Prompt Integration** - Load system prompts from separate file  
 ✅ **Initial Conversation Support** - Include prior conversation context as JSON  
 ✅ **7 Evaluation Metrics** - Comprehensive multi-turn conversation assessment  
@@ -51,10 +49,7 @@ These are official DeepEval metrics designed specifically for multi-turn convers
 
 ---
 
-## 🚀 Quick Start (3 Minutes)
-
-### Step 1: Install Dependencies
->>>>>>> 94da8a49f6e9d12632b1d3afea6ac6303c3b2c86
+## 🚀 Quick Start
 
 ```bash
 # 1. Install
@@ -77,20 +72,35 @@ python3 evaluate.py input/example_conversation_template.xlsx
 
 ## Excel Format
 
-### For Generate Mode (model generates responses)
+### Option 1: Standard Format (Ready to Use)
+
+For pre-recorded mode (responses already in Excel):
+
+| Initial Conversation | User Query | Model A Response | Model B Response | Chatbot Role |
+|---------------------|------------|------------------|------------------|--------------|
+| `[{"role": "assistant", "content": "Hello!"}]` | I can't log in | Sorry to hear that... | I understand your frustration... | Support agent |
+
+For generate mode (model generates responses):
 
 | User Query | Chatbot Role | Scenario |
 |------------|--------------|----------|
 | I can't log in | Professional support agent | Login issue |
-| I tried resetting password | | |
-| Checked spam folder | | |
 
-### For Pre-recorded Mode (responses already in Excel)
+### Option 2: Custom Format (Needs Conversion)
 
-| User Query | Model A Response | Model B Response | Chatbot Role |
-|------------|------------------|------------------|--------------|
-| I can't log in | Sorry to hear that... | I understand your frustration... | Support agent |
-| I tried resetting | Can you check spam? | Let me verify... | |
+If your Excel has custom columns like:
+
+| test_id | conversation_history | query | response_A | response_B |
+|---------|---------------------|-------|------------|------------|
+| 1 | assistant: Hello user: Hi | What are hours? | 9-5 | 24/7 |
+
+**Convert it first:**
+
+```bash
+python convert_excel_format.py input/your_file.xlsx
+```
+
+This will create `input/your_file_converted.xlsx` in the standard format. See `CONVERSION_GUIDE.md` for details.
 
 ## Usage
 

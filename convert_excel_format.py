@@ -65,7 +65,7 @@ def parse_conversation_history_to_json(conversation_text: str) -> str:
         else:
             i += 1
     
-    return json.dumps(turns)
+    return json.dumps(turns, ensure_ascii=False)
 
 
 def convert_excel_format(input_path: str, output_path: str):
@@ -130,7 +130,7 @@ def convert_excel_format(input_path: str, output_path: str):
         print(f"\n📋 Preview of conversation JSON format:")
         try:
             sample_json = json.loads(converted_df.iloc[0]['Initial Conversation'])
-            print(json.dumps(sample_json, indent=2))
+            print(json.dumps(sample_json, indent=2, ensure_ascii=False))
         except:
             print("(No conversation history in first row)")
 

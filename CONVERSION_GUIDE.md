@@ -81,6 +81,8 @@ All formats are converted to:
 ]
 ```
 
+**Unicode Support**: The converter properly handles Unicode characters (emojis, special characters, non-English text) without escaping them as `\uXXXX` sequences. Characters like emojis 😊, accented letters café, or other languages 你好 are preserved in their original form.
+
 ## Notes
 
 - Empty or missing `conversation_history` will be converted to `[]` (empty array)

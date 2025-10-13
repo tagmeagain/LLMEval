@@ -26,11 +26,12 @@ from config import BASE_MODEL, FINETUNED_MODEL
 class MultiTurnTester:
     """Framework for testing multi-turn conversations"""
     
-    def __init__(self, base_model_config: dict, finetuned_model_config: dict, judge_model: str = "gpt-4", use_all_metrics: bool = True):
+    def __init__(self, base_model_config: dict, finetuned_model_config: dict, judge_model: str = "gpt-4", use_all_metrics: bool = True, verbose_mode: bool = False):
         self.base_model = ModelWrapper(base_model_config)
         self.finetuned_model = ModelWrapper(finetuned_model_config)
         self.judge_model = judge_model  # Store judge model for all evaluations
         self.use_all_metrics = use_all_metrics  # Whether to use all 7 metrics or just original 4
+        self.verbose_mode = verbose_mode  # Whether to print intermediate metric calculation steps
         self.results = []
     
     def generate_conversations(self, user_turns: List[Dict[str, str]]) -> tuple:
@@ -96,18 +97,78 @@ class MultiTurnTester:
                     model=judge_model,
                 ),
                 # DeepEval's built-in multi-turn conversation metrics
-                KnowledgeRetentionMetric(threshold=0.5, model=judge_model),
-                TurnRelevancyMetric(threshold=0.5, model=judge_model),
-                RoleAdherenceMetric(threshold=0.5, model=judge_model),
-                ConversationCompletenessMetric(threshold=0.5, model=judge_model),
+                # Using ALL available parameters from official docs
+                KnowledgeRetentionMetric(
+                    threshold=0.5,
+                    model=judge_model,
+                    include_reason=True,      # Include reasoning for scores
+                    strict_mode=False,         # Allow scores between 0-1
+                    async_mode=True,           # Enable concurrent execution
+                    verbose_mode=self.verbose_mode  # Shows intermediate steps if enabled
+                ),
+                TurnRelevancyMetric(
+                    threshold=0.5,
+                    model=judge_model,
+                    include_reason=True,       # Include reasoning for scores
+                    strict_mode=False,         # Allow scores between 0-1
+                    async_mode=True,           # Enable concurrent execution
+                    verbose_mode=self.verbose_mode,  # Shows intermediate steps if enabled
+                    window_size=10             # Sliding window size for context
+                ),
+                RoleAdherenceMetric(
+                    threshold=0.5,
+                    model=judge_model,
+                    include_reason=True,       # Include reasoning for scores
+                    strict_mode=False,         # Allow scores between 0-1
+                    async_mode=True,           # Enable concurrent execution
+                    verbose_mode=self.verbose_mode  # Shows intermediate steps if enabled
+                ),
+                ConversationCompletenessMetric(
+                    threshold=0.5,
+                    model=judge_model,
+                    include_reason=True,       # Include reasoning for scores
+                    strict_mode=False,         # Allow scores between 0-1
+                    async_mode=True,           # Enable concurrent execution
+                    verbose_mode=self.verbose_mode  # Shows intermediate steps if enabled
+                ),
             ]
         else:
             # Only 4 built-in metrics (for cost savings - no custom GEval)
+            # Using ALL available parameters
             return [
-                KnowledgeRetentionMetric(threshold=0.5, model=judge_model),
-                TurnRelevancyMetric(threshold=0.5, model=judge_model),
-                RoleAdherenceMetric(threshold=0.5, model=judge_model),
-                ConversationCompletenessMetric(threshold=0.5, model=judge_model),
+                KnowledgeRetentionMetric(
+                    threshold=0.5,
+                    model=judge_model,
+                    include_reason=True,
+                    strict_mode=False,
+                    async_mode=True,
+                    verbose_mode=self.verbose_mode
+                ),
+                TurnRelevancyMetric(
+                    threshold=0.5,
+                    model=judge_model,
+                    include_reason=True,
+                    strict_mode=False,
+                    async_mode=True,
+                    verbose_mode=self.verbose_mode,
+                    window_size=10
+                ),
+                RoleAdherenceMetric(
+                    threshold=0.5,
+                    model=judge_model,
+                    include_reason=True,
+                    strict_mode=False,
+                    async_mode=True,
+                    verbose_mode=self.verbose_mode
+                ),
+                ConversationCompletenessMetric(
+                    threshold=0.5,
+                    model=judge_model,
+                    include_reason=True,
+                    strict_mode=False,
+                    async_mode=True,
+                    verbose_mode=self.verbose_mode
+                ),
             ]
     
     def evaluate_conversation(self, test_case: ConversationalTestCase, model_name: str) -> dict:

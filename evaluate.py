@@ -63,7 +63,8 @@ def evaluate_file(
     system_prompt: str,
     judge_model: str,
     use_all_metrics: bool,
-    output_dir: str
+    output_dir: str,
+    verbose_mode: bool = False
 ) -> Dict:
     """
     Evaluate conversations from Excel file
@@ -81,7 +82,8 @@ def evaluate_file(
         BASE_MODEL,
         FINETUNED_MODEL,
         judge_model=judge_model,
-        use_all_metrics=use_all_metrics
+        use_all_metrics=use_all_metrics,
+        verbose_mode=verbose_mode
     )
     
     loader = ExcelConversationLoader(excel_path)
@@ -286,6 +288,8 @@ Each ROW in Excel = One separate conversation to evaluate
                         help='Metrics to use (default: all)')
     parser.add_argument('--output', '-o', default='evaluation_result',
                         help='Output directory (default: evaluation_result)')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='Enable verbose mode to see intermediate metric calculation steps')
     
     return parser.parse_args()
 
@@ -335,6 +339,7 @@ def main():
     print(f"   Judge Model: {args.judge}")
     print(f"   Metrics: {'All 7' if use_all_metrics else 'Only 4 built-in'}")
     print(f"   Mode: {args.mode.upper()}")
+    print(f"   Verbose: {'ON (shows intermediate steps)' if args.verbose else 'OFF'}")
     print(f"\n💡 Note: Each ROW in Excel = One conversation\n")
     
     # Process each file
@@ -353,7 +358,8 @@ def main():
                 system_prompt,
                 args.judge,
                 use_all_metrics,
-                args.output
+                args.output,
+                verbose_mode=args.verbose
             )
         except Exception as e:
             print(f"\n❌ Error: {e}\n")

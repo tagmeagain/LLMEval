@@ -105,10 +105,15 @@ def evaluate_file(
             print(f"Conversation {idx}/{len(test_case_pairs)}")
             print(f"{'='*80}\n")
             
-            # Add system prompt as context
+            # Add system prompt as context and chatbot_role
             if system_prompt:
                 model_a_test_case.context = [system_prompt]
                 model_b_test_case.context = [system_prompt]
+                # Use system prompt as chatbot_role if not already set
+                if not model_a_test_case.chatbot_role or model_a_test_case.chatbot_role == "helpful AI assistant":
+                    model_a_test_case.chatbot_role = system_prompt
+                if not model_b_test_case.chatbot_role or model_b_test_case.chatbot_role == "helpful AI assistant":
+                    model_b_test_case.chatbot_role = system_prompt
             
             # Evaluate
             result = tester.evaluate_from_excel_test_cases(

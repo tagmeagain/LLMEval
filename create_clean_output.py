@@ -1,5 +1,5 @@
 """
-Clean Output Generator
+Clean Output Generator  
 Converts DeepEval results into readable formats
 Handles both single and multiple conversations
 """
@@ -10,21 +10,49 @@ import re
 
 
 def extract_metrics(result_dict):
-    """Extract metrics from evaluation results"""
+    """Extract ALL metrics from evaluation results - FIXED VERSION"""
     metrics_str = str(result_dict)
     metrics = {}
     
-    # Extract metric data using regex
-    pattern = r"MetricData\(name='([^']+)'.*?score=([0-9.]+).*?success=(\w+).*?reason='([^']*(?:''[^']*)*?)'"
-    matches = re.findall(pattern, metrics_str, re.DOTALL)
+    # Split by MetricData to find all metrics
+    metric_sections = metrics_str.split("MetricData(")
     
-    for match in matches:
-        name, score, success, reason = match
-        metrics[name] = {
-            "score": round(float(score), 4),
-            "pass": success == 'True',
-            "reason": reason[:300].replace("''", "'")  # First 300 chars, unescape quotes
-        }
+    for section in metric_sections[1:]:  # Skip first empty part
+        try:
+            # Extract name
+            name_match = re.search(r"name='([^']+)'", section)
+            if not name_match:
+                continue
+            name = name_match.group(1)
+            
+            # Extract score
+            score_match = re.search(r"score=([0-9.]+)", section)
+            if not score_match:
+                continue
+            score = float(score_match.group(1))
+            
+            # Extract success/pass
+            success_match = re.search(r"success=(\w+)", section)
+            if not success_match:
+                continue
+            success = success_match.group(1) == 'True'
+            
+            # Extract threshold
+            threshold_match = re.search(r"threshold=([0-9.]+)", section)
+            threshold = float(threshold_match.group(1)) if threshold_match else 0.5
+            
+            # Extract reason (first 300 chars)
+            reason_match = re.search(r"reason='([^']*(?:''[^']*)*?)'", section, re.DOTALL)
+            reason = reason_match.group(1)[:300].replace("''", "'") if reason_match else ""
+            
+            metrics[name] = {
+                "score": round(score, 4),
+                "pass": success,
+                "threshold": threshold,
+                "reason": reason
+            }
+        except Exception as e:
+            continue  # Skip malformed metrics
     
     return metrics
 
@@ -60,11 +88,13 @@ def process_multi_conversation_results(data, base_name, output_dir):
         if "model_a_evaluation" in conv:
             model_a_metrics = extract_metrics(conv["model_a_evaluation"]["metrics"])
             all_model_a_metrics[conv_name] = model_a_metrics
+            print(f"  Conv {idx} Model A: {len(model_a_metrics)} metrics extracted")
         
         # Extract metrics for Model B
         if "model_b_evaluation" in conv:
             model_b_metrics = extract_metrics(conv["model_b_evaluation"]["metrics"])
             all_model_b_metrics[conv_name] = model_b_metrics
+            print(f"  Conv {idx} Model B: {len(model_b_metrics)} metrics extracted")
     
     # Create metrics-only JSON
     metrics_only = {
@@ -117,87 +147,19 @@ def process_multi_conversation_results(data, base_name, output_dir):
         md_lines.append(f"\n## Conversation {idx}\n")
         
         md_lines.append("### Model A (Base) Metrics\n")
-        for metric, values in conv_metrics["model_a_metrics"].items():
+        for metric, values in sorted(conv_metrics["model_a_metrics"].items()):
             status = "✅" if values["pass"] else "❌"
             md_lines.append(f"- {status} **{metric}**: {values['score']:.4f}")
         
         md_lines.append("\n### Model B (Finetuned) Metrics\n")
-        for metric, values in conv_metrics["model_b_metrics"].items():
+        for metric, values in sorted(conv_metrics["model_b_metrics"].items()):
             status = "✅" if values["pass"] else "❌"
             md_lines.append(f"- {status} **{metric}**: {values['score']:.4f}")
         
-        md_lines.append("\n### Comparison\n")
-        for metric, winner in conv_metrics["comparison"].items():
-            md_lines.append(f"- **{metric}**: {winner}")
-    
-    # Save summary
-    summary_path = os.path.join(output_dir, f"{base_name}_summary.md")
-    with open(summary_path, 'w') as f:
-        f.write('\n'.join(md_lines))
-    print(f"✓ Created: {summary_path}")
-
-
-def process_single_conversation_results(data, base_name, output_dir):
-    """Process results with single conversation (legacy)"""
-    
-    # Extract metrics
-    model_a_metrics = {}
-    model_b_metrics = {}
-    
-    if "results" in data:
-        results = data["results"]
-        if "model_a_evaluation" in results:
-            model_a_metrics = extract_metrics(results["model_a_evaluation"]["metrics"])
-        if "model_b_evaluation" in results:
-            model_b_metrics = extract_metrics(results["model_b_evaluation"]["metrics"])
-    
-    # Create metrics-only JSON
-    metrics_only = {
-        "test_name": data.get("file", base_name),
-        "timestamp": data.get("timestamp", ""),
-        "model_a_metrics": model_a_metrics,
-        "model_b_metrics": model_b_metrics,
-        "comparison": {}
-    }
-    
-    # Compare scores
-    for metric in model_a_metrics:
-        if metric in model_b_metrics:
-            a_score = model_a_metrics[metric]["score"]
-            b_score = model_b_metrics[metric]["score"]
-            if a_score > b_score:
-                metrics_only["comparison"][metric] = "Model A wins"
-            elif b_score > a_score:
-                metrics_only["comparison"][metric] = "Model B wins"
-            else:
-                metrics_only["comparison"][metric] = "Tie"
-    
-    # Save metrics-only
-    metrics_path = os.path.join(output_dir, f"{base_name}_metrics_only.json")
-    with open(metrics_path, 'w') as f:
-        json.dump(metrics_only, f, indent=2)
-    print(f"✓ Created: {metrics_path}")
-    
-    # Create summary markdown
-    md_lines = [
-        f"# Evaluation Summary: {base_name}",
-        f"\n**Timestamp**: {data.get('timestamp', 'N/A')}",
-        f"\n**Mode**: {data.get('mode', 'N/A').upper()}",
-        "\n## Model A (Base) Metrics\n"
-    ]
-    
-    for metric, values in model_a_metrics.items():
-        status = "✅" if values["pass"] else "❌"
-        md_lines.append(f"- {status} **{metric}**: {values['score']:.4f}")
-    
-    md_lines.append("\n## Model B (Finetuned) Metrics\n")
-    for metric, values in model_b_metrics.items():
-        status = "✅" if values["pass"] else "❌"
-        md_lines.append(f"- {status} **{metric}**: {values['score']:.4f}")
-    
-    md_lines.append("\n## Comparison\n")
-    for metric, winner in metrics_only["comparison"].items():
-        md_lines.append(f"- **{metric}**: {winner}")
+        if conv_metrics["comparison"]:
+            md_lines.append("\n### Comparison\n")
+            for metric, winner in sorted(conv_metrics["comparison"].items()):
+                md_lines.append(f"- **{metric}**: {winner}")
     
     # Save summary
     summary_path = os.path.join(output_dir, f"{base_name}_summary.md")

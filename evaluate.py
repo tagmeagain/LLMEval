@@ -2,18 +2,13 @@
 """
 Main Evaluation Script - DeepEval Multi-Turn Conversation Testing
 
-Usage:
-    # Auto-detect mode
-    python3 evaluate.py input/test.xlsx
-    
-    # Force generate mode
-    python3 evaluate.py input/test.xlsx --mode generate
-    
-    # Force pre-recorded mode  
-    python3 evaluate.py input/test.xlsx --mode prerecorded
-    
-    # Custom options
-    python3 evaluate.py input/test.xlsx --judge gpt-4 --metrics builtin
+Each ROW in Excel = One SEPARATE conversation to evaluate
+
+Excel Format:
+- Initial Conversation: Prior conversation (JSON format)
+- User Query: Last user message
+- Model A Response: Base model response (optional for generate mode)
+- Model B Response: Finetuned model response (optional for generate mode)
 """
 
 import argparse
@@ -29,6 +24,7 @@ from typing import Dict, List
 from multi_turn_testing import MultiTurnTester
 from excel_loader import ExcelConversationLoader
 from config import BASE_MODEL, FINETUNED_MODEL
+from deepeval.test_case import ConversationalTestCase, Turn
 
 
 def ensure_directories():
@@ -50,7 +46,13 @@ def detect_mode(excel_path: str) -> str:
     has_model_b = "Model B Response" in df.columns
     
     if has_model_a and has_model_b:
-        return "prerecorded"
+        # Check if responses exist
+        has_data = False
+        for idx, row in df.iterrows():
+            if pd.notna(row.get("Model A Response")) and pd.notna(row.get("Model B Response")):
+                has_data = True
+                break
+        return "prerecorded" if has_data else "generate"
     else:
         return "generate"
 
@@ -64,18 +66,8 @@ def evaluate_file(
     output_dir: str
 ) -> Dict:
     """
-    Evaluate a single Excel file
-    
-    Args:
-        excel_path: Path to Excel file
-        mode: 'generate' or 'prerecorded'
-        system_prompt: System prompt content
-        judge_model: Judge model name
-        use_all_metrics: Use all 7 metrics or just 4
-        output_dir: Output directory
-    
-    Returns:
-        Results dictionary
+    Evaluate conversations from Excel file
+    Each row = one separate conversation
     """
     filename = os.path.basename(excel_path)
     print(f"\n{'='*80}")
@@ -92,108 +84,156 @@ def evaluate_file(
         use_all_metrics=use_all_metrics
     )
     
+    loader = ExcelConversationLoader(excel_path)
+    
     if mode == "prerecorded":
-        # Use Excel responses
         print("✓ Using pre-recorded responses from Excel\n")
         
-        loader = ExcelConversationLoader(excel_path)
-        model_a_test_case, model_b_test_case = loader.parse_conversation_from_excel()
+        # Get all conversations
+        test_case_pairs = loader.get_conversations_prerecorded()
         
-        # Add system prompt as context
-        if system_prompt:
-            model_a_test_case.context = [system_prompt]
-            model_b_test_case.context = [system_prompt]
+        if not test_case_pairs:
+            print("❌ No valid conversations found in Excel")
+            return None
         
-        print(f"Loaded {len(model_a_test_case.turns)} turns\n")
+        print(f"Loaded {len(test_case_pairs)} conversation(s)\n")
+        
+        # Evaluate each conversation
+        all_results = []
+        for idx, (model_a_test_case, model_b_test_case) in enumerate(test_case_pairs, 1):
+            print(f"\n{'='*80}")
+            print(f"Conversation {idx}/{len(test_case_pairs)}")
+            print(f"{'='*80}\n")
+            
+            # Add system prompt as context
+            if system_prompt:
+                model_a_test_case.context = [system_prompt]
+                model_b_test_case.context = [system_prompt]
+            
+            # Evaluate
+            result = tester.evaluate_from_excel_test_cases(
+                model_a_test_case,
+                model_b_test_case,
+                f"{filename} - Conversation {idx}"
+            )
+            all_results.append(result)
+        
+        # Save combined results
+        combined_results = {
+            "file": filename,
+            "mode": mode,
+            "timestamp": datetime.now().isoformat(),
+            "system_prompt": system_prompt[:200] if system_prompt else None,
+            "total_conversations": len(test_case_pairs),
+            "conversations": all_results
+        }
         
     else:  # generate mode
-        # Generate responses on-the-fly
         print("✓ Generating responses on-the-fly\n")
         
-        # Parse Excel
-        df = pd.read_excel(excel_path)
+        # Get conversations for generation
+        conversations = loader.get_conversations_for_generation()
         
-        # Extract user queries
-        user_queries = []
-        for idx, row in df.iterrows():
-            if "User Query" in df.columns and pd.notna(row["User Query"]):
-                query = str(row["User Query"]).strip()
-                if query:
-                    user_queries.append(query)
+        if not conversations:
+            print("❌ No valid conversations found in Excel")
+            return None
         
-        print(f"Extracted {len(user_queries)} user queries\n")
+        print(f"Loaded {len(conversations)} conversation(s)\n")
         
-        # Build conversation
-        full_conversation = []
-        if system_prompt:
-            full_conversation.append({"role": "system", "content": system_prompt})
+        # Evaluate each conversation
+        all_results = []
+        generated_data = []
         
-        for query in user_queries:
-            full_conversation.append({"role": "user", "content": query})
-        
-        # Generate responses
-        print("🤖 Calling models to generate responses...\n")
-        base_conv, finetuned_conv = tester.generate_conversations(full_conversation)
-        
-        # Convert to test cases
-        from deepeval.test_case import ConversationalTestCase, Turn
-        
-        # Filter out system messages
-        base_turns = [Turn(role=t["role"], content=t["content"]) for t in base_conv if t["role"] in ["user", "assistant"]]
-        finetuned_turns = [Turn(role=t["role"], content=t["content"]) for t in finetuned_conv if t["role"] in ["user", "assistant"]]
-        
-        # Get optional metadata from Excel
-        chatbot_role = None
-        scenario = None
-        if "Chatbot Role" in df.columns and pd.notna(df.iloc[0]["Chatbot Role"]):
-            chatbot_role = str(df.iloc[0]["Chatbot Role"]).strip()
-        if "Scenario" in df.columns and pd.notna(df.iloc[0]["Scenario"]):
-            scenario = str(df.iloc[0]["Scenario"]).strip()
-        
-        model_a_test_case = ConversationalTestCase(
-            turns=base_turns,
-            context=[system_prompt] if system_prompt else None,
-            chatbot_role=chatbot_role,
-            scenario=scenario
-        )
-        
-        model_b_test_case = ConversationalTestCase(
-            turns=finetuned_turns,
-            context=[system_prompt] if system_prompt else None,
-            chatbot_role=chatbot_role,
-            scenario=scenario
-        )
+        for idx, conv_data in enumerate(conversations, 1):
+            print(f"\n{'='*80}")
+            print(f"Conversation {idx}/{len(conversations)}")
+            print(f"{'='*80}\n")
+            
+            # Build conversation for generation
+            initial_turns = conv_data["initial_turns"]
+            user_query = conv_data["user_query"]
+            metadata = conv_data["metadata"]
+            
+            # Build full conversation
+            full_conversation = []
+            if system_prompt:
+                full_conversation.append({"role": "system", "content": system_prompt})
+            
+            # Add initial conversation
+            for turn in initial_turns:
+                full_conversation.append(turn)
+            
+            # Add user query
+            full_conversation.append({"role": "user", "content": user_query})
+            
+            print(f"Initial conversation: {len(initial_turns)} turn(s)")
+            print(f"User query: {user_query[:100]}...\n")
+            
+            # Generate responses
+            print("🤖 Generating responses...\n")
+            base_conv, finetuned_conv = tester.generate_conversations(full_conversation)
+            
+            # Convert to test cases (filter out system messages)
+            base_turns = [Turn(role=t["role"], content=t["content"]) for t in base_conv if t["role"] in ["user", "assistant"]]
+            finetuned_turns = [Turn(role=t["role"], content=t["content"]) for t in finetuned_conv if t["role"] in ["user", "assistant"]]
+            
+            # Create test cases
+            model_a_test_case = ConversationalTestCase(
+                turns=base_turns,
+                context=[system_prompt] if system_prompt else None,
+                **metadata
+            )
+            
+            model_b_test_case = ConversationalTestCase(
+                turns=finetuned_turns,
+                context=[system_prompt] if system_prompt else None,
+                **metadata
+            )
+            
+            # Evaluate
+            result = tester.evaluate_from_excel_test_cases(
+                model_a_test_case,
+                model_b_test_case,
+                f"{filename} - Conversation {idx}"
+            )
+            all_results.append(result)
+            
+            # Store generated responses
+            model_a_response = [t.content for t in base_turns if t.role == "assistant"][-1] if base_turns else ""
+            model_b_response = [t.content for t in finetuned_turns if t.role == "assistant"][-1] if finetuned_turns else ""
+            
+            generated_data.append({
+                "row_index": conv_data["row_index"],
+                "user_query": user_query,
+                "model_a_response": model_a_response,
+                "model_b_response": model_b_response
+            })
         
         # Save generated responses to Excel
-        output_excel_data = df.copy()
-        model_a_responses = [t.content for t in base_turns if t.role == "assistant"]
-        model_b_responses = [t.content for t in finetuned_turns if t.role == "assistant"]
-        output_excel_data["Model A Response"] = pd.Series(model_a_responses[:len(output_excel_data)])
-        output_excel_data["Model B Response"] = pd.Series(model_b_responses[:len(output_excel_data)])
+        df = pd.read_excel(excel_path)
+        for gen_data in generated_data:
+            idx = gen_data["row_index"]
+            df.at[idx, "Model A Response"] = gen_data["model_a_response"]
+            df.at[idx, "Model B Response"] = gen_data["model_b_response"]
         
         excel_out_path = os.path.join(output_dir, filename.replace('.xlsx', '_with_responses.xlsx'))
-        output_excel_data.to_excel(excel_out_path, index=False)
-        print(f"✓ Saved Excel with responses: {excel_out_path}\n")
+        df.to_excel(excel_out_path, index=False)
+        print(f"\n✓ Saved Excel with responses: {excel_out_path}\n")
+        
+        # Save combined results
+        combined_results = {
+            "file": filename,
+            "mode": mode,
+            "timestamp": datetime.now().isoformat(),
+            "system_prompt": system_prompt[:200] if system_prompt else None,
+            "total_conversations": len(conversations),
+            "conversations": all_results
+        }
     
-    # Evaluate
-    print("📊 Evaluating with all metrics...\n")
-    result = tester.evaluate_from_excel_test_cases(
-        model_a_test_case,
-        model_b_test_case,
-        filename
-    )
-    
-    # Save results
-    result_data = {
-        "file": filename,
-        "mode": mode,
-        "timestamp": datetime.now().isoformat(),
-        "results": result
-    }
-    
+    # Save JSON results
     json_path = os.path.join(output_dir, filename.replace('.xlsx', '_results.json'))
     with open(json_path, 'w') as f:
-        json.dump(result_data, f, indent=2, default=str)
+        json.dump(combined_results, f, indent=2, default=str)
     
     print(f"\n✅ Results saved: {json_path}")
     
@@ -201,10 +241,10 @@ def evaluate_file(
     try:
         from create_clean_output import process_result_file
         process_result_file(json_path)
-    except:
-        pass
+    except Exception as e:
+        print(f"⚠️  Could not create clean outputs: {e}")
     
-    return result_data
+    return combined_results
 
 
 def parse_args():
@@ -218,6 +258,8 @@ Examples:
   %(prog)s input/test.xlsx --mode generate
   %(prog)s input/test.xlsx --judge gpt-4
   %(prog)s test1.xlsx test2.xlsx --metrics builtin
+  
+Each ROW in Excel = One separate conversation to evaluate
         '''
     )
     
@@ -281,6 +323,7 @@ def main():
     print(f"   Judge Model: {args.judge}")
     print(f"   Metrics: {'All 7' if use_all_metrics else 'Only 4 built-in'}")
     print(f"   Mode: {args.mode.upper()}")
+    print(f"\n💡 Note: Each ROW in Excel = One conversation\n")
     
     # Process each file
     for excel_file in excel_files:
@@ -302,6 +345,8 @@ def main():
             )
         except Exception as e:
             print(f"\n❌ Error: {e}\n")
+            import traceback
+            traceback.print_exc()
             continue
     
     print("\n" + "="*80)

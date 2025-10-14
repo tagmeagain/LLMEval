@@ -207,7 +207,7 @@ class DeepEvalAnalyzer:
         df_summary = pd.DataFrame(summary_data)
         
         # Calculate averages
-        avg_data = {'Metric': [], 'Model A Avg': [], 'Model B Avg': [], 'Difference (B-A)': [], 'Winner': []}
+        avg_data = {'Metric': [], 'Model A Avg': [], 'Model B Avg': [], 'Difference (B-A)': [], 'Better Performer': []}
         
         for metric in metric_names:
             col_a = f'{metric} - Model A'
@@ -217,13 +217,13 @@ class DeepEvalAnalyzer:
                 avg_a = df_summary[col_a].mean()
                 avg_b = df_summary[col_b].mean()
                 diff = avg_b - avg_a
-                winner = 'Model B' if diff > 0 else 'Model A' if diff < 0 else 'Tie'
+                better_performer = 'Model B' if diff > 0 else 'Model A' if diff < 0 else 'Equivalent'
                 
                 avg_data['Metric'].append(metric)
                 avg_data['Model A Avg'].append(round(avg_a, 3))
                 avg_data['Model B Avg'].append(round(avg_b, 3))
                 avg_data['Difference (B-A)'].append(round(diff, 3))
-                avg_data['Winner'].append(winner)
+                avg_data['Better Performer'].append(better_performer)
         
         df_avg = pd.DataFrame(avg_data)
         
@@ -275,31 +275,31 @@ class DeepEvalAnalyzer:
         print(f"✅ Chart saved: {chart_path}")
         return chart_path
     
-    def create_winner_pie_chart(self, df_avg):
-        """Create pie chart showing which model wins more metrics"""
-        print("\n📈 Creating winner distribution chart...")
+    def create_performance_pie_chart(self, df_avg):
+        """Create pie chart showing comparative model performance across metrics"""
+        print("\n📈 Creating performance distribution chart...")
         
-        winner_counts = df_avg['Winner'].value_counts()
+        performance_counts = df_avg['Better Performer'].value_counts()
         
         fig, ax = plt.subplots(figsize=(10, 8))
         
         colors = ['#2ecc71', '#3498db', '#95a5a6']
-        explode = [0.05 if w == 'Model B' else 0 for w in winner_counts.index]
+        explode = [0.05 if w == 'Model B' else 0 for w in performance_counts.index]
         
         wedges, texts, autotexts = ax.pie(
-            winner_counts.values,
-            labels=winner_counts.index,
+            performance_counts.values,
+            labels=performance_counts.index,
             autopct='%1.1f%%',
-            colors=colors[:len(winner_counts)],
+            colors=colors[:len(performance_counts)],
             explode=explode,
             startangle=90,
             textprops={'fontsize': 12, 'fontweight': 'bold'}
         )
         
-        ax.set_title('Metric Winner Distribution', fontsize=14, fontweight='bold')
+        ax.set_title('Performance Distribution Across Metrics', fontsize=14, fontweight='bold')
         
         plt.tight_layout()
-        chart_path = os.path.join(self.charts_dir, 'winner_distribution.png')
+        chart_path = os.path.join(self.charts_dir, 'performance_distribution.png')
         plt.savefig(chart_path, dpi=300, bbox_inches='tight')
         plt.close()
         
@@ -404,14 +404,14 @@ class DeepEvalAnalyzer:
         report.append("-"*80)
         
         total_metrics = len(df_avg)
-        model_b_wins = len(df_avg[df_avg['Winner'] == 'Model B'])
-        model_a_wins = len(df_avg[df_avg['Winner'] == 'Model A'])
-        ties = len(df_avg[df_avg['Winner'] == 'Tie'])
+        model_b_higher = len(df_avg[df_avg['Better Performer'] == 'Model B'])
+        model_a_higher = len(df_avg[df_avg['Better Performer'] == 'Model A'])
+        equivalent = len(df_avg[df_avg['Better Performer'] == 'Equivalent'])
         
         report.append(f"Total Metrics Evaluated: {total_metrics}")
-        report.append(f"Model B Wins: {model_b_wins} ({model_b_wins/total_metrics*100:.1f}%)")
-        report.append(f"Model A Wins: {model_a_wins} ({model_a_wins/total_metrics*100:.1f}%)")
-        report.append(f"Ties: {ties} ({ties/total_metrics*100:.1f}%)")
+        report.append(f"Model B Scores Higher: {model_b_higher} ({model_b_higher/total_metrics*100:.1f}%)")
+        report.append(f"Model A Scores Higher: {model_a_higher} ({model_a_higher/total_metrics*100:.1f}%)")
+        report.append(f"Equivalent Performance: {equivalent} ({equivalent/total_metrics*100:.1f}%)")
         
         # Best performing metrics
         report.append("\n🏆 TOP 3 IMPROVEMENTS (Model B over Model A)")
@@ -435,10 +435,10 @@ class DeepEvalAnalyzer:
         report.append("\n💡 KEY RECOMMENDATIONS")
         report.append("-"*80)
         
-        if model_b_wins > model_a_wins:
+        if model_b_higher > model_a_higher:
             report.append("✅ Model B shows overall superior performance across most metrics")
             report.append("   → Recommended for production deployment")
-        elif model_a_wins > model_b_wins:
+        elif model_a_higher > model_b_higher:
             report.append("⚠️  Model A outperforms Model B in majority of metrics")
             report.append("   → Further finetuning of Model B recommended")
         else:
@@ -473,7 +473,7 @@ class DeepEvalAnalyzer:
         
         # Create visualizations
         metric_chart = self.create_metric_comparison_chart(df_avg)
-        winner_chart = self.create_winner_pie_chart(df_avg)
+        performance_chart = self.create_performance_pie_chart(df_avg)
         heatmap_chart = self.create_heatmap()
         improvement_chart = self.create_improvement_chart(df_avg)
         
@@ -489,7 +489,7 @@ class DeepEvalAnalyzer:
         print(f"  - Executive Summary: {os.path.basename(exec_excel)}")
         print("\n📈 Charts:")
         print(f"  - {os.path.basename(metric_chart)}")
-        print(f"  - {os.path.basename(winner_chart)}")
+        print(f"  - {os.path.basename(performance_chart)}")
         if heatmap_chart:
             print(f"  - {os.path.basename(heatmap_chart)}")
         print(f"  - {os.path.basename(improvement_chart)}")

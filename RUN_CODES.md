@@ -522,8 +522,8 @@ For each evaluation, the system creates **5 output files**:
         "Helpfulness": {"score": 0.95, "pass": true}
       },
       "comparison": {
-        "Coherence": "Model B wins",
-        "Helpfulness": "Model B wins"
+        "Coherence": "Model B scores higher",
+        "Helpfulness": "Model B scores higher"
       }
     }
   ]
@@ -556,9 +556,9 @@ For each evaluation, the system creates **5 output files**:
 - ✅ Coherence: 0.8800
 - ✅ Helpfulness: 0.9500
 
-### Comparison
-- Coherence: Model B wins
-- Helpfulness: Model B wins
+### Comparative Performance
+- Coherence: Model B scores higher
+- Helpfulness: Model B scores higher
 ```
 
 **Use**: 

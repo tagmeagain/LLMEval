@@ -121,11 +121,11 @@ def process_multi_conversation_results(data, base_name, output_dir):
                 a_score = conv_metrics["model_a_metrics"][metric]["score"]
                 b_score = conv_metrics["model_b_metrics"][metric]["score"]
                 if a_score > b_score:
-                    conv_metrics["comparison"][metric] = "Model A wins"
+                    conv_metrics["comparison"][metric] = "Model A scores higher"
                 elif b_score > a_score:
-                    conv_metrics["comparison"][metric] = "Model B wins"
+                    conv_metrics["comparison"][metric] = "Model B scores higher"
                 else:
-                    conv_metrics["comparison"][metric] = "Tie"
+                    conv_metrics["comparison"][metric] = "Equivalent performance"
         
         metrics_only["conversations"].append(conv_metrics)
     
@@ -157,9 +157,9 @@ def process_multi_conversation_results(data, base_name, output_dir):
             md_lines.append(f"- {status} **{metric}**: {values['score']:.4f}")
         
         if conv_metrics["comparison"]:
-            md_lines.append("\n### Comparison\n")
-            for metric, winner in sorted(conv_metrics["comparison"].items()):
-                md_lines.append(f"- **{metric}**: {winner}")
+            md_lines.append("\n### Comparative Performance\n")
+            for metric, comparison in sorted(conv_metrics["comparison"].items()):
+                md_lines.append(f"- **{metric}**: {comparison}")
     
     # Save summary
     summary_path = os.path.join(output_dir, f"{base_name}_summary.md")

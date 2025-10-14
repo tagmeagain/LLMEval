@@ -50,8 +50,8 @@ Contains **everything** in a single sheet:
 Contains **2 sheets:**
 
 **Sheet 1: Metric Averages**
-| Metric | Model A Avg | Model B Avg | Difference (B-A) | Winner |
-|--------|-------------|-------------|------------------|--------|
+| Metric | Model A Avg | Model B Avg | Difference (B-A) | Better Performer |
+|--------|-------------|-------------|------------------|------------------|
 | Coherence | 0.850 | 0.920 | +0.070 | Model B |
 | Role Adherence | 0.780 | 0.850 | +0.070 | Model B |
 
@@ -78,15 +78,15 @@ Bar chart comparing Model A vs Model B across all 7 metrics
 
 **Use case:** Show overall performance comparison
 
-#### 2. Winner Distribution Pie Chart
-**File:** `winner_distribution.png`
+#### 2. Performance Distribution Pie Chart
+**File:** `performance_distribution.png`
 
 Pie chart showing:
-- % of metrics where Model B wins
-- % of metrics where Model A wins
-- % of ties
+- % of metrics where Model B scores higher
+- % of metrics where Model A scores higher
+- % of equivalent performance
 
-**Use case:** Quick visual summary of which model is better
+**Use case:** Quick visual summary of comparative model performance
 
 #### 3. Metrics Heatmap
 **File:** `metrics_heatmap.png`
@@ -118,8 +118,8 @@ Auto-generated text report with:
 
 1. **Overall Performance Stats**
    - Total metrics evaluated
-   - Model B wins/losses
-   - Win percentages
+   - Comparative performance metrics
+   - Performance distribution percentages
 
 2. **Top 3 Improvements**
    - Metrics where Model B improved most
@@ -150,7 +150,7 @@ analysis_output/
 ├── *_executive_summary.xlsx  ← Share this
 ├── charts/
 │   ├── metric_comparison.png  ← Share this
-│   └── winner_distribution.png  ← Share this
+│   └── performance_distribution.png  ← Share this
 └── *_insights_report.txt  ← Share this
 ```
 
@@ -168,7 +168,7 @@ analysis_output/
 ├── *_executive_summary.xlsx  ← Summary
 ├── charts/
 │   ├── metric_comparison.png
-│   ├── winner_distribution.png
+│   ├── performance_distribution.png
 │   ├── metrics_heatmap.png  ← Pattern analysis
 │   └── improvement_analysis.png  ← Detailed improvements
 └── *_insights_report.txt
@@ -186,7 +186,7 @@ analysis_output/
 python analysis.py evaluation_result/results.json
 
 # 2. Insert charts into PowerPoint:
-- Slide 1: Winner distribution pie chart
+- Slide 1: Performance distribution pie chart
 - Slide 2: Metric comparison bar chart
 - Slide 3: Key insights from insights_report.txt
 - Slide 4: Heatmap showing detailed performance
@@ -340,7 +340,7 @@ zip -r analysis_results.zip analysis_output/
 analysis_output/
 ├── charts/
 │   ├── metric_comparison.png          (14x8 inches, 300 DPI)
-│   ├── winner_distribution.png        (10x8 inches, 300 DPI)
+│   ├── performance_distribution.png   (10x8 inches, 300 DPI)
 │   ├── metrics_heatmap.png            (18x8 inches, 300 DPI)
 │   └── improvement_analysis.png       (14x8 inches, 300 DPI)
 ├── file_results_detailed_analysis.xlsx     (~5-50 MB depending on data)

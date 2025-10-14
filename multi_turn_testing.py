@@ -282,7 +282,7 @@ class MultiTurnTester:
         )
         
         return {
-            "winner": arena_metric.name,
+            "better_performer": arena_metric.name,
             "criteria": criteria,
             "base_conversation": base_conversation,
             "finetuned_conversation": finetuned_conversation,
@@ -359,14 +359,14 @@ class MultiTurnTester:
         print("TEST SUMMARY")
         print("="*80)
         
-        base_wins = sum(1 for r in self.results 
-                       if "Base Model" in str(r.get("arena_comparison", {}).get("winner", "")))
-        finetuned_wins = len(self.results) - base_wins
+        base_higher = sum(1 for r in self.results 
+                       if "Base Model" in str(r.get("arena_comparison", {}).get("better_performer", "")))
+        finetuned_higher = len(self.results) - base_higher
         
         print(f"\nTotal Test Cases: {len(self.results)}")
-        print(f"Base Model Wins: {base_wins}")
-        print(f"Finetuned Model Wins: {finetuned_wins}")
-        print(f"Win Rate (Finetuned): {finetuned_wins/len(self.results)*100:.1f}%")
+        print(f"Base Model Scores Higher: {base_higher}")
+        print(f"Finetuned Model Scores Higher: {finetuned_higher}")
+        print(f"Performance Rate (Finetuned): {finetuned_higher/len(self.results)*100:.1f}%")
         print(f"\nMetrics Used: {'All 7 metrics' if self.use_all_metrics else 'Original 4 metrics'}")
         print("\n" + "="*80)
     

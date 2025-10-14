@@ -423,6 +423,18 @@ class DeepEvalAnalyzer:
         report.append("-"*80)
         
         total_metrics = len(df_avg)
+        
+        if total_metrics == 0:
+            report.append("⚠️  No metrics data available for comparison")
+            report.append("\n" + "="*80)
+            report_text = '\n'.join(report)
+            report_path = os.path.join(self.output_dir, f"{self.filename}_insights_report.txt")
+            with open(report_path, 'w') as f:
+                f.write(report_text)
+            print(report_text)
+            print(f"\n✅ Insights report saved: {report_path}")
+            return report_path
+        
         model_b_higher = len(df_avg[df_avg['Better Performer'] == 'Model B'])
         model_a_higher = len(df_avg[df_avg['Better Performer'] == 'Model A'])
         equivalent = len(df_avg[df_avg['Better Performer'] == 'Equivalent'])

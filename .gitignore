@@ -4,28 +4,16 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
 venv/
+env/
 ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
 *.egg-info/
-.installed.cfg
-*.egg
+dist/
+build/
 
 # Environment
 .env
-.venv
+.env.local
 
 # IDE
 .vscode/
@@ -40,21 +28,9 @@ Thumbs.db
 
 # Project specific
 evaluation_result/
-*.json
-input/*.xlsx
-input/*.xls
+analysis_output/
+logs/
+*.log
 
-# Keep example files
-!example_*.xlsx
-!example_*.json
-
-# Jupyter
-.ipynb_checkpoints/
-*.ipynb
-
-# Test outputs
-results_*.json
-live_results_*.json
-*_with_responses.xlsx
-parsed_*.json
-
+# Test files (optional - uncomment if you want to ignore)
+# input/*.xlsx

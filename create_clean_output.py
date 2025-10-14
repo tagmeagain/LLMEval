@@ -131,8 +131,8 @@ def process_multi_conversation_results(data, base_name, output_dir):
     
     # Save metrics-only
     metrics_path = os.path.join(output_dir, f"{base_name}_metrics_only.json")
-    with open(metrics_path, 'w') as f:
-        json.dump(metrics_only, f, indent=2)
+    with open(metrics_path, 'w', encoding='utf-8') as f:
+        json.dump(metrics_only, f, indent=2, ensure_ascii=False)
     print(f"✓ Created: {metrics_path}")
     
     # Create summary markdown

@@ -243,8 +243,8 @@ def evaluate_file(
     
     # Save JSON results
     json_path = os.path.join(output_dir, filename.replace('.xlsx', '_results.json'))
-    with open(json_path, 'w') as f:
-        json.dump(combined_results, f, indent=2, default=str)
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(combined_results, f, indent=2, default=str, ensure_ascii=False)
     
     print(f"\n✅ Results saved: {json_path}")
     

@@ -13,6 +13,7 @@ import numpy as np
 from datetime import datetime
 import os
 import sys
+import re
 
 # Set style for professional charts
 sns.set_style("whitegrid")
@@ -55,6 +56,57 @@ class DeepEvalAnalyzer:
         if len(words) <= max_words:
             return text
         return ' '.join(words[:max_words]) + "..."
+    
+    def get_excel_column_letter(self, idx: int) -> str:
+        """Convert column index (0-based) to Excel column letter (A, B, ..., Z, AA, AB, ...)"""
+        letter = ''
+        idx += 1  # Excel columns are 1-based
+        while idx > 0:
+            idx -= 1
+            letter = chr(65 + (idx % 26)) + letter
+            idx //= 26
+        return letter
+    
+    def extract_metrics_from_string(self, metrics_str: str) -> dict:
+        """Extract metrics from string representation"""
+        metrics = {}
+        
+        # Split by MetricData to find all metrics
+        metric_sections = str(metrics_str).split("MetricData(")
+        
+        for section in metric_sections[1:]:  # Skip first empty part
+            try:
+                # Extract name
+                name_match = re.search(r"name='([^']+)'", section)
+                if not name_match:
+                    continue
+                name = name_match.group(1)
+                
+                # Extract score
+                score_match = re.search(r"score=([0-9.]+)", section)
+                if not score_match:
+                    continue
+                score = float(score_match.group(1))
+                
+                # Extract success/pass
+                success_match = re.search(r"success=(\w+)", section)
+                if not success_match:
+                    continue
+                success = success_match.group(1) == 'True'
+                
+                # Extract reason (first 300 chars)
+                reason_match = re.search(r"reason='([^']*(?:''[^']*)*?)'", section, re.DOTALL)
+                reason = reason_match.group(1)[:300].replace("''", "'") if reason_match else ""
+                
+                metrics[name] = {
+                    "score": score,
+                    "pass": success,
+                    "reason": reason
+                }
+            except Exception as e:
+                continue  # Skip malformed metrics
+        
+        return metrics
     
     def extract_metrics_data(self):
         """Extract all metrics data into structured format"""
@@ -135,23 +187,19 @@ class DeepEvalAnalyzer:
                 'Chatbot Role (100 words)': self.truncate_text(chatbot_role, 100),
             }
             
-            # Add Model A metrics
-            if hasattr(metrics_a, 'test_results'):
-                for result in metrics_a.test_results:
-                    for metric_data in result.metrics_data:
-                        metric_name = metric_data.name
-                        row[f'Model A - {metric_name} Score'] = round(metric_data.score, 3)
-                        row[f'Model A - {metric_name} Pass'] = metric_data.success
-                        row[f'Model A - {metric_name} Reason'] = metric_data.reason or 'N/A'
+            # Add Model A metrics - parse from string representation
+            parsed_metrics_a = self.extract_metrics_from_string(str(metrics_a))
+            for metric_name, metric_data in parsed_metrics_a.items():
+                row[f'Model A - {metric_name} Score'] = round(metric_data['score'], 3)
+                row[f'Model A - {metric_name} Pass'] = metric_data['pass']
+                row[f'Model A - {metric_name} Reason'] = metric_data['reason'] or 'N/A'
             
-            # Add Model B metrics
-            if hasattr(metrics_b, 'test_results'):
-                for result in metrics_b.test_results:
-                    for metric_data in result.metrics_data:
-                        metric_name = metric_data.name
-                        row[f'Model B - {metric_name} Score'] = round(metric_data.score, 3)
-                        row[f'Model B - {metric_name} Pass'] = metric_data.success
-                        row[f'Model B - {metric_name} Reason'] = metric_data.reason or 'N/A'
+            # Add Model B metrics - parse from string representation
+            parsed_metrics_b = self.extract_metrics_from_string(str(metrics_b))
+            for metric_name, metric_data in parsed_metrics_b.items():
+                row[f'Model B - {metric_name} Score'] = round(metric_data['score'], 3)
+                row[f'Model B - {metric_name} Pass'] = metric_data['pass']
+                row[f'Model B - {metric_name} Reason'] = metric_data['reason'] or 'N/A'
             
             all_data.append(row)
         
@@ -162,6 +210,9 @@ class DeepEvalAnalyzer:
         print("\n📊 Creating detailed Excel report...")
         
         df = self.extract_metrics_data()
+        
+        # Sanitize column names for Excel compatibility
+        df.columns = [col.replace('[', '(').replace(']', ')') for col in df.columns]
         
         # Create Excel with formatting
         excel_path = os.path.join(self.output_dir, f"{self.filename}_detailed_analysis.xlsx")
@@ -177,7 +228,8 @@ class DeepEvalAnalyzer:
                     len(col)
                 ) + 2
                 # Cap at 100 characters for readability
-                worksheet.column_dimensions[chr(65 + idx)].width = min(max_length, 100)
+                col_letter = self.get_excel_column_letter(idx)
+                worksheet.column_dimensions[col_letter].width = min(max_length, 100)
         
         print(f"✅ Detailed Excel saved: {excel_path}")
         return excel_path
@@ -204,22 +256,16 @@ class DeepEvalAnalyzer:
                 'Test Case': conv.get('test_case_name', ''),
             }
             
-            # Extract scores
-            if hasattr(metrics_a, 'test_results'):
-                for result in metrics_a.test_results:
-                    for metric_data in result.metrics_data:
-                        metric_name = metric_data.name
-                        if metric_name not in metric_names:
-                            metric_names.append(metric_name)
-                        
-                        row[f'{metric_name} - Model A'] = round(metric_data.score, 3)
-                        row[f'{metric_name} - Model B'] = 0  # Placeholder
+            # Extract scores using string parsing
+            parsed_metrics_a = self.extract_metrics_from_string(str(metrics_a))
+            for metric_name, metric_data in parsed_metrics_a.items():
+                if metric_name not in metric_names:
+                    metric_names.append(metric_name)
+                row[f'{metric_name} - Model A'] = round(metric_data['score'], 3)
             
-            if hasattr(metrics_b, 'test_results'):
-                for result in metrics_b.test_results:
-                    for metric_data in result.metrics_data:
-                        metric_name = metric_data.name
-                        row[f'{metric_name} - Model B'] = round(metric_data.score, 3)
+            parsed_metrics_b = self.extract_metrics_from_string(str(metrics_b))
+            for metric_name, metric_data in parsed_metrics_b.items():
+                row[f'{metric_name} - Model B'] = round(metric_data['score'], 3)
             
             summary_data.append(row)
         

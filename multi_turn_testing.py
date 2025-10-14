@@ -345,8 +345,8 @@ class MultiTurnTester:
     
     def save_results(self, filename: str):
         """Save test results to JSON file"""
-        with open(filename, 'w') as f:
-            json.dump(self.results, f, indent=2, default=str)
+        with open(filename, 'w', encoding='utf-8') as f:
+            json.dump(self.results, f, indent=2, default=str, ensure_ascii=False)
         print(f"\nResults saved to {filename}")
     
     def print_summary(self):

@@ -1,0 +1,40 @@
+================================================================================
+EXECUTIVE INSIGHTS REPORT
+================================================================================
+
+Generated: 2025-10-14 13:08:46
+Source: test_quick_results
+
+================================================================================
+
+📊 OVERALL PERFORMANCE
+--------------------------------------------------------------------------------
+Total Metrics Evaluated: 7
+Model B Scores Higher: 4 (57.1%)
+Model A Scores Higher: 0 (0.0%)
+Equivalent Performance: 3 (42.9%)
+
+🏆 TOP 3 IMPROVEMENTS (Model B over Model A)
+--------------------------------------------------------------------------------
+1. Role Adherence
+   Model A: 0.500 | Model B: 1.000 | Improvement: +0.500
+2. Helpfulness [Conversational GEval]
+   Model A: 0.378 | Model B: 0.730 | Improvement: +0.352
+3. Contextual Understanding [Conversational GEval]
+   Model A: 0.674 | Model B: 0.822 | Improvement: +0.148
+
+⚠️  AREAS NEEDING ATTENTION
+--------------------------------------------------------------------------------
+1. Knowledge Retention
+   Model A: 1.000 | Model B: 1.000 | Difference: +0.000
+2. Turn Relevancy
+   Model A: 1.000 | Model B: 1.000 | Difference: +0.000
+3. Conversation Completeness
+   Model A: 1.000 | Model B: 1.000 | Difference: +0.000
+
+💡 KEY RECOMMENDATIONS
+--------------------------------------------------------------------------------
+✅ Model B shows overall superior performance across most metrics
+   → Recommended for production deployment
+
+================================================================================

@@ -2,7 +2,7 @@
 Main testing framework for comparing base vs finetuned models
 using multi-turn conversations with DeepEval
 """
-from typing import List, Dict
+from typing import List, Dict, Any
 import json
 from deepeval import evaluate
 from deepeval.test_case import LLMTestCase, ConversationalTestCase, TurnParams
@@ -21,6 +21,35 @@ from deepeval.metrics import (
 from model_wrapper import ModelWrapper
 from config import BASE_MODEL, FINETUNED_MODEL
 # Test cases removed - use Excel files instead
+
+
+def deepeval_to_dict(obj: Any) -> Any:
+    """
+    Custom serializer for DeepEval objects to avoid escape sequences.
+    Converts DeepEval objects to dictionaries with clean strings.
+    """
+    # Handle None
+    if obj is None:
+        return None
+    
+    # Handle primitive types
+    if isinstance(obj, (str, int, float, bool)):
+        return obj
+    
+    # Handle lists
+    if isinstance(obj, list):
+        return [deepeval_to_dict(item) for item in obj]
+    
+    # Handle dicts
+    if isinstance(obj, dict):
+        return {key: deepeval_to_dict(value) for key, value in obj.items()}
+    
+    # Handle DeepEval objects by extracting their __dict__
+    if hasattr(obj, '__dict__'):
+        return {key: deepeval_to_dict(value) for key, value in obj.__dict__.items() if not key.startswith('_')}
+    
+    # Fallback to string representation
+    return str(obj)
 
 
 class MultiTurnTester:
@@ -345,8 +374,10 @@ class MultiTurnTester:
     
     def save_results(self, filename: str):
         """Save test results to JSON file"""
+        # Convert DeepEval objects to clean dictionaries
+        clean_results = deepeval_to_dict(self.results)
         with open(filename, 'w', encoding='utf-8') as f:
-            json.dump(self.results, f, indent=2, default=str, ensure_ascii=False)
+            json.dump(clean_results, f, indent=2, ensure_ascii=False)
         print(f"\nResults saved to {filename}")
     
     def print_summary(self):

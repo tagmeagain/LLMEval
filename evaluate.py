@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Dict, List
 
 # Import our modules
-from multi_turn_testing import MultiTurnTester
+from multi_turn_testing import MultiTurnTester, deepeval_to_dict
 from excel_loader import ExcelConversationLoader
 from config import BASE_MODEL, FINETUNED_MODEL
 from deepeval.test_case import ConversationalTestCase, Turn
@@ -243,8 +243,10 @@ def evaluate_file(
     
     # Save JSON results
     json_path = os.path.join(output_dir, filename.replace('.xlsx', '_results.json'))
+    # Convert DeepEval objects to clean dictionaries
+    clean_results = deepeval_to_dict(combined_results)
     with open(json_path, 'w', encoding='utf-8') as f:
-        json.dump(combined_results, f, indent=2, default=str, ensure_ascii=False)
+        json.dump(clean_results, f, indent=2, ensure_ascii=False)
     
     print(f"\n✅ Results saved: {json_path}")
     

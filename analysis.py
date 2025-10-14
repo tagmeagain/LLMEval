@@ -67,8 +67,31 @@ class DeepEvalAnalyzer:
             idx //= 26
         return letter
     
+    def extract_metrics_from_dict(self, metrics_data) -> dict:
+        """Extract metrics from dictionary structure (new format)"""
+        metrics = {}
+        
+        if isinstance(metrics_data, dict):
+            # New format: dict with test_results
+            if 'test_results' in metrics_data:
+                for test_result in metrics_data['test_results']:
+                    if 'metrics_data' in test_result:
+                        for metric in test_result['metrics_data']:
+                            name = metric.get('name', '')
+                            score = metric.get('score', 0.0)
+                            success = metric.get('success', False)
+                            reason = metric.get('reason', '')[:300] if metric.get('reason') else ''
+                            
+                            metrics[name] = {
+                                "score": score,
+                                "pass": success,
+                                "reason": reason
+                            }
+        
+        return metrics
+    
     def extract_metrics_from_string(self, metrics_str: str) -> dict:
-        """Extract metrics from string representation"""
+        """Extract metrics from string representation (old format)"""
         metrics = {}
         
         # Split by MetricData to find all metrics
@@ -107,6 +130,13 @@ class DeepEvalAnalyzer:
                 continue  # Skip malformed metrics
         
         return metrics
+    
+    def extract_metrics(self, metrics_data) -> dict:
+        """Extract metrics from either dict or string format"""
+        if isinstance(metrics_data, dict):
+            return self.extract_metrics_from_dict(metrics_data)
+        else:
+            return self.extract_metrics_from_string(str(metrics_data))
     
     def extract_metrics_data(self):
         """Extract all metrics data into structured format"""
@@ -187,15 +217,15 @@ class DeepEvalAnalyzer:
                 'Chatbot Role (100 words)': self.truncate_text(chatbot_role, 100),
             }
             
-            # Add Model A metrics - parse from string representation
-            parsed_metrics_a = self.extract_metrics_from_string(str(metrics_a))
+            # Add Model A metrics - handle both dict and string formats
+            parsed_metrics_a = self.extract_metrics(metrics_a)
             for metric_name, metric_data in parsed_metrics_a.items():
                 row[f'Model A - {metric_name} Score'] = round(metric_data['score'], 3)
                 row[f'Model A - {metric_name} Pass'] = metric_data['pass']
                 row[f'Model A - {metric_name} Reason'] = metric_data['reason'] or 'N/A'
             
-            # Add Model B metrics - parse from string representation
-            parsed_metrics_b = self.extract_metrics_from_string(str(metrics_b))
+            # Add Model B metrics - handle both dict and string formats
+            parsed_metrics_b = self.extract_metrics(metrics_b)
             for metric_name, metric_data in parsed_metrics_b.items():
                 row[f'Model B - {metric_name} Score'] = round(metric_data['score'], 3)
                 row[f'Model B - {metric_name} Pass'] = metric_data['pass']
@@ -256,14 +286,14 @@ class DeepEvalAnalyzer:
                 'Test Case': conv.get('test_case_name', ''),
             }
             
-            # Extract scores using string parsing
-            parsed_metrics_a = self.extract_metrics_from_string(str(metrics_a))
+            # Extract scores - handle both dict and string formats
+            parsed_metrics_a = self.extract_metrics(metrics_a)
             for metric_name, metric_data in parsed_metrics_a.items():
                 if metric_name not in metric_names:
                     metric_names.append(metric_name)
                 row[f'{metric_name} - Model A'] = round(metric_data['score'], 3)
             
-            parsed_metrics_b = self.extract_metrics_from_string(str(metrics_b))
+            parsed_metrics_b = self.extract_metrics(metrics_b)
             for metric_name, metric_data in parsed_metrics_b.items():
                 row[f'{metric_name} - Model B'] = round(metric_data['score'], 3)
             

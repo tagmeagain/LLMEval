@@ -1,349 +1,174 @@
-# DeepEval Multi-Turn Conversation Testing
+# DeepEval - Multi-Turn Conversational AI Testing Framework
 
-LLM-as-a-judge evaluation framework for comparing Model A vs Model B on multi-turn conversations.
-
-## ✨ Key Features
-
-✅ **Excel-Based Testing** - Load test cases from Excel files  
-✅ **Excel Format Converter** - Convert your custom Excel format automatically  
-✅ **Auto-Mode Detection** - Automatically detects prerecorded vs generate mode  
-✅ **System Prompt Integration** - Uses system_prompt.txt as chatbot role  
-✅ **7 Evaluation Metrics** - ALL parameters configured with reasoning included  
-✅ **LLM-as-a-Judge** - Configurable judge model (GPT-4, GPT-3.5, etc.)  
-✅ **Verbose Mode** - See intermediate calculation steps for debugging  
-✅ **Batch Processing** - Evaluate multiple Excel files at once  
-✅ **Comprehensive Results** - JSON, Markdown, and Excel outputs  
+Automated evaluation system for comparing LLM chatbot models using 7 comprehensive quality metrics.
 
 ---
 
-## 🚀 Quick Start (3 Steps)
+## 🚀 Quick Start
 
 ### 1. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. Setup Environment
-```bash
-# Copy template
-cp env_template.txt .env
+### 2. Configure Your Models
+Edit `config.py`:
+```python
+BASE_MODEL = {
+    "name": "gpt-4o-mini",
+    "api_key": "your-api-key"
+}
 
-# Edit .env and add your keys:
-OPENAI_API_KEY=sk-your-key-here
-JUDGE_MODEL=gpt-4
+FINETUNED_MODEL = {
+    "name": "your-finetuned-model",
+    "api_key": "your-api-key"
+}
 ```
 
-### 3. Run Evaluation
-```bash
-# If you have custom Excel format, convert it first
-python convert_excel_format.py input/your_file.xlsx
+### 3. Set Your System Prompt
+Edit `system_prompt.txt` with your chatbot's role definition.
 
-# Run evaluation (auto-detects prerecorded mode)
-python evaluate.py input/your_file_converted.xlsx
+### 4. Prepare Test Cases
+Create Excel file in `input/` with these columns:
+
+**For Pre-recorded Responses:**
+- `Initial Conversation` (JSON format, optional)
+- `User Query` (required)
+- `Model A Response` (required)
+- `Model B Response` (required)
+- `Chatbot Role` (optional)
+
+**For On-the-fly Generation:**
+- `Initial Conversation` (JSON format, optional)
+- `User Query` (required)
+- `Chatbot Role` (optional)
+
+### 5. Run Evaluation
+```bash
+python evaluate.py input/your_test.xlsx
+```
+
+### 6. Analyze Results
+```bash
+python analysis.py evaluation_result/your_test_results.json
 ```
 
 ---
 
 ## 📊 The 7 Metrics
 
-All metrics use **LLM-as-a-judge** evaluation with **ALL parameters configured**:
+Each conversation is evaluated on:
 
-### Custom Conversational Metrics (3)
-1. **Coherence** - Logical flow and clarity
-2. **Contextual Understanding** - Context awareness and building on previous turns
-3. **Helpfulness** - Practical, actionable information
+1. **Coherence** - Logical flow and structure
+2. **Contextual Understanding** - Context awareness
+3. **Helpfulness** - Practical value
+4. **Knowledge Retention** - Memory tracking
+5. **Turn Relevancy** - Response relevance
+6. **Role Adherence** - Character consistency
+7. **Conversation Completeness** - Full resolution
 
-### DeepEval Built-in Multi-Turn Metrics (4)
-4. **Knowledge Retention** - Remembers information from earlier turns  
-   [📚 Docs](https://deepeval.com/docs/metrics-knowledge-retention)
-
-5. **Turn Relevancy** - Each response is relevant to user query  
-   [📚 Docs](https://deepeval.com/docs/metrics-turn-relevancy)
-
-6. **Role Adherence** - Maintains consistent role (uses system_prompt.txt)  
-   [📚 Docs](https://deepeval.com/docs/metrics-role-adherence)
-
-7. **Conversation Completeness** - All queries addressed, satisfactory conclusion  
-   [📚 Docs](https://deepeval.com/docs/metrics-conversation-completeness)
-
-**All metrics include:**
-- ✅ `include_reason=True` - Detailed reasoning for scores
-- ✅ `strict_mode=False` - Gradual scores (0-1)
-- ✅ `async_mode=True` - Concurrent execution for speed
-- ✅ `verbose_mode` - Optional debug output
+Threshold: **0.5** for all metrics (Pass/Fail)
 
 ---
 
-## 📝 Excel Format
+## 📁 Output Files
 
-### Option 1: Convert Your Custom Format (Recommended)
+After evaluation, you get:
 
-If you have columns like: `test_id`, `conversation_history`, `query`, `response_A`, `response_B`
+**Results:**
+- `evaluation_result/test_results.json` - Full evaluation data
+- `evaluation_result/test_metrics_only.json` - Clean metrics summary
+- `evaluation_result/test_summary.md` - Markdown summary
 
-```bash
-# Convert to required format
-python convert_excel_format.py input/your_file.xlsx
-
-# Output: input/your_file_converted.xlsx
-```
-
-**Conversion features:**
-- ✅ Converts text conversation_history to JSON format
-- ✅ Handles Unicode properly (emojis, special characters)
-- ✅ Adds default "Chatbot Role" column
-- ✅ Maps all columns correctly
-
-See `CONVERSION_GUIDE.md` for details.
-
-### Option 2: Standard Format (Already Correct)
-
-| Initial Conversation | User Query | Model A Response | Model B Response | Chatbot Role |
-|---------------------|------------|------------------|------------------|--------------|
-| `[{"role":"assistant","content":"Hello"}]` | I can't log in | Sorry to hear... | I understand... | customer support agent |
-
-**Column descriptions:**
-- `Initial Conversation` - Prior conversation turns in JSON format (can be empty: `[]`)
-- `User Query` - The user's question/message
-- `Model A Response` - Base model's response
-- `Model B Response` - Finetuned/comparison model's response
-- `Chatbot Role` - Role description (auto-uses system_prompt.txt if empty)
-
----
-
-## 🎮 Usage Examples
-
-### Basic Usage
-```bash
-# Auto-detect mode and run
-python evaluate.py input/your_file.xlsx
-```
-
-### With Custom Judge Model
-```bash
-# Use GPT-4 as judge
-python evaluate.py input/file.xlsx --judge gpt-4
-
-# Use GPT-3.5 (cheaper)
-python evaluate.py input/file.xlsx --judge gpt-3.5-turbo
-```
-
-### With Verbose Mode (See Intermediate Steps)
-```bash
-# Enable debug output
-python evaluate.py input/file.xlsx --verbose
-
-# Short flag
-python evaluate.py input/file.xlsx -v
-```
-
-### Only 4 Metrics (Cost Savings)
-```bash
-# Skip custom GEval metrics (use only built-in 4)
-python evaluate.py input/file.xlsx --metrics builtin
-```
-
-### Multiple Files
-```bash
-# Batch process
-python evaluate.py input/file1.xlsx input/file2.xlsx input/file3.xlsx
-```
-
-### All Options Combined
-```bash
-python evaluate.py input/file.xlsx \
-  --judge gpt-4 \
-  --metrics all \
-  --verbose \
-  --mode prerecorded \
-  --system-prompt custom_prompt.txt
-```
-
----
-
-## ⚙️ Configuration
-
-### Environment Variables (.env)
-```bash
-OPENAI_API_KEY=sk-your-key-here
-JUDGE_MODEL=gpt-4  # Default judge model
-```
-
-### Model Configuration (config.py)
-```python
-# Base Model
-BASE_MODEL = {
-    "name": "gpt-4.1-nano",
-    "api_key": OPENAI_API_KEY,
-    "temperature": 0.7,
-    "max_tokens": 500
-}
-
-# Finetuned Model
-FINETUNED_MODEL = {
-    "name": "ft:gpt-3.5-turbo:org:model:id",  # Your finetuned model
-    "api_key": OPENAI_API_KEY,
-    "temperature": 0.7,
-    "max_tokens": 500
-}
-```
-
-### System Prompt (system_prompt.txt)
-The system prompt is **automatically used as the chatbot_role** for Role Adherence metric.
-
-Example:
-```
-You are a professional customer support agent for TechCorp.
-Your responsibilities:
-- Be empathetic and professional
-- Solve issues efficiently
-...
-```
-
----
-
-## 📤 Outputs
-
-For each evaluation, you get:
-
-| File | Description |
-|------|-------------|
-| `*_results.json` | Full DeepEval output with all metrics |
-| `*_metrics_only.json` | Clean scores comparison (Model A vs B) |
-| `*_summary.md` | Human-readable markdown summary |
-| `*_with_responses.xlsx` | Excel with responses (generate mode only) |
-
-**Example output structure:**
-```json
-{
-  "metric": "Role Adherence",
-  "score": 0.85,
-  "reason": "The assistant consistently maintained a professional...",
-  "pass": true
-}
-```
-
----
-
-## 🎯 Command Line Options
-
-| Flag | Short | Description | Default |
-|------|-------|-------------|---------|
-| `--mode` | `-m` | Evaluation mode: auto, generate, prerecorded | `auto` |
-| `--judge` | `-j` | Judge model (gpt-4, gpt-3.5-turbo, etc.) | From `.env` or `gpt-4.1-nano` |
-| `--metrics` | | Metrics to use: all, builtin | `all` |
-| `--system-prompt` | `-s` | System prompt file path | `system_prompt.txt` |
-| `--output` | `-o` | Output directory | `evaluation_result` |
-| `--verbose` | `-v` | Enable verbose mode (shows intermediate steps) | `False` |
-
----
-
-## 📁 Project Structure
-
-```
-DeepEval/
-├── evaluate.py                 # Main entry point
-├── convert_excel_format.py     # Excel format converter
-├── config.py                   # Model configuration
-├── excel_loader.py             # Excel → DeepEval test cases
-├── multi_turn_testing.py       # Evaluation framework with all metrics
-├── model_wrapper.py            # Model API wrapper
-├── create_clean_output.py      # Output formatting
-├── system_prompt.txt           # Default system prompt (used as chatbot_role)
-├── .env                        # API keys and configuration
-├── env_template.txt            # Template for .env
-├── requirements.txt            # Python dependencies
-├── CONVERSION_GUIDE.md         # Excel conversion guide
-├── TECHNICAL_ARCHITECTURE.md   # Technical documentation
-├── input/                      # Input Excel files
-│   └── test_multiple_conversations.xlsx
-└── evaluation_result/          # Output files
-    └── *.json, *.md, *.xlsx
-```
-
----
-
-## 💡 FAQ
-
-**Q: How do I convert my custom Excel format?**  
-A: Run `python convert_excel_format.py input/your_file.xlsx` - See `CONVERSION_GUIDE.md`
-
-**Q: Why am I not getting reasons for metrics?**  
-A: Updated! All metrics now include `include_reason=True` parameter.
-
-**Q: How do I change the judge model?**  
-A: Set `JUDGE_MODEL=gpt-4` in `.env` or use `--judge gpt-4` flag.
-
-**Q: How do I use my finetuned model?**  
-A: Edit `config.py` and change `FINETUNED_MODEL["name"]` to your model ID.
-
-**Q: What if I don't have conversation history?**  
-A: Use empty array `[]` in "Initial Conversation" column.
-
-**Q: How do I reduce costs?**  
-A: Use `--metrics builtin` (4 metrics instead of 7) or use cheaper judge like `gpt-3.5-turbo`.
-
-**Q: What does verbose mode show?**  
-A: Intermediate calculation steps for each metric (useful for debugging).
-
-**Q: Can I test a single model?**  
-A: Yes, just use the same model for both Model A and Model B responses.
-
----
-
-## 🔧 Troubleshooting
-
-### "chatbot_role cannot be empty"
-✅ Fixed! System prompt is now automatically used as chatbot_role.
-
-### "No valid conversations found"
-- Check that "User Query" column exists
-- Ensure cells have content
-
-### "Invalid JSON in Initial Conversation"
-- Validate JSON format: `[{"role":"user","content":"..."}]`
-- Use the converter if your format is text-based
-
-### Missing reasons in output
-✅ Fixed! All metrics now include reasoning.
+**Analysis (after running analysis.py):**
+- Excel reports (detailed + executive summary)
+- Charts (metric comparison, heatmaps, improvement analysis)
+- Insights report (recommendations)
 
 ---
 
 ## 📚 Documentation
 
-- `CONVERSION_GUIDE.md` - Excel format conversion guide
-- `TECHNICAL_ARCHITECTURE.md` - Technical details and architecture
-- `RUN_CODES.md` - Comprehensive usage examples
-- `SYSTEM_PROMPT_EXPLAINED.md` - System prompt documentation
+### User Guides
+- **[Metrics Guide](docs/guides/metrics-guide.md)** - Understanding each metric
+- **[Metric Calculation](docs/guides/metric-calculation.md)** - How metrics are calculated
+- **[System Prompt Guide](docs/guides/system-prompt.md)** - Using system prompts
+- **[Analysis Guide](docs/guides/analysis-guide.md)** - Analyzing results
+
+### Reference
+- **[Commands Reference](docs/reference/commands.md)** - All CLI commands
+- **[Excel Conversion](docs/reference/conversion.md)** - Format conversion guide
+
+### Advanced
+- **[Technical Architecture](docs/advanced/technical-architecture.md)** - System internals
 
 ---
 
-## 🚀 Complete Workflow Example
+## 💡 Common Use Cases
 
+### Compare Base vs Fine-tuned Model
 ```bash
-# 1. Convert your custom Excel
-python convert_excel_format.py input/my_tests.xlsx
-# Output: input/my_tests_converted.xlsx
+# Use pre-recorded responses
+python evaluate.py input/comparison_test.xlsx
+python analysis.py evaluation_result/comparison_test_results.json
+```
 
-# 2. Run evaluation
-python evaluate.py input/my_tests_converted.xlsx --judge gpt-4 --verbose
+### Generate Responses and Evaluate
+```bash
+# Models generate responses on-the-fly
+python evaluate.py input/queries.xlsx --mode generate
+```
 
-# 3. Check results
-ls -la evaluation_result/
-# my_tests_converted_results.json
-# my_tests_converted_metrics_only.json  
-# my_tests_converted_summary.md
+### Custom Judge Model
+```bash
+python evaluate.py input/test.xlsx --judge gpt-4
+```
+
+### With Logging
+```bash
+python run_evaluation_with_log.py input/test.xlsx
+python run_analysis_with_log.py evaluation_result/test_results.json
 ```
 
 ---
 
-## License
+## 🎯 Key Features
 
-MIT
+✅ **Automated Testing** - No manual evaluation needed  
+✅ **Comprehensive Metrics** - 7 quality dimensions  
+✅ **Model Comparison** - Side-by-side base vs fine-tuned  
+✅ **Batch Processing** - Test multiple conversations at once  
+✅ **Rich Analysis** - Charts, Excel reports, insights  
+✅ **Flexible** - Pre-recorded or generated responses  
 
 ---
 
-## Support
+## 📖 Learn More
 
-For technical details, see `TECHNICAL_ARCHITECTURE.md`  
-For conversion help, see `CONVERSION_GUIDE.md`  
-For examples, see `RUN_CODES.md`
+- [Metrics Guide](docs/guides/metrics-guide.md) - Understand the 7 metrics
+- [Metric Calculation Flow](docs/guides/metric-calculation.md) - See what data is evaluated
+- [Commands Reference](docs/reference/commands.md) - Complete command guide
+
+---
+
+## 🛠️ Requirements
+
+- Python 3.8+
+- OpenAI API key (or compatible LLM provider)
+- Dependencies: `pip install -r requirements.txt`
+
+---
+
+## 📞 Support
+
+For detailed documentation, see the `docs/` directory.
+
+**Quick Help:**
+- Installation issues? Check `requirements.txt`
+- Excel format? See [Conversion Guide](docs/reference/conversion.md)
+- Understanding metrics? See [Metrics Guide](docs/guides/metrics-guide.md)
+- System architecture? See [Technical Architecture](docs/advanced/technical-architecture.md)
+
+---
+
+**Last Updated:** October 14, 2025

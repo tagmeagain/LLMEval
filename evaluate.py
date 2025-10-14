@@ -19,12 +19,14 @@ import json
 import pandas as pd
 from datetime import datetime
 from typing import Dict, List
+import logging
 
 # Import our modules
 from multi_turn_testing import MultiTurnTester, deepeval_to_dict
 from excel_loader import ExcelConversationLoader
 from config import BASE_MODEL, FINETUNED_MODEL
 from deepeval.test_case import ConversationalTestCase, Turn
+from logger_config import setup_logger, log_section, log_subsection
 
 
 def ensure_directories():

@@ -201,6 +201,17 @@ def evaluate_file(
                 **metadata
             )
             
+            # Override chatbot_role with system prompt if default is being used
+            if system_prompt:
+                if not model_a_test_case.chatbot_role or model_a_test_case.chatbot_role == "helpful AI assistant":
+                    model_a_test_case.chatbot_role = system_prompt
+                if not model_b_test_case.chatbot_role or model_b_test_case.chatbot_role == "helpful AI assistant":
+                    model_b_test_case.chatbot_role = system_prompt
+            
+            # Print chatbot role being used
+            print(f"📋 Chatbot Role: {model_a_test_case.chatbot_role[:100]}..." if len(model_a_test_case.chatbot_role) > 100 else f"📋 Chatbot Role: {model_a_test_case.chatbot_role}")
+            print()
+            
             # Evaluate
             result = tester.evaluate_from_excel_test_cases(
                 model_a_test_case,

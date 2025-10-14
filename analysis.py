@@ -70,9 +70,16 @@ class DeepEvalAnalyzer:
             test_case_a = model_a.get('test_case', {})
             test_case_b = model_b.get('test_case', {})
             
-            # Extract turns
-            turns_a = test_case_a.get('turns', [])
-            turns_b = test_case_b.get('turns', [])
+            # Extract turns - handle both dict and string representations
+            if isinstance(test_case_a, dict):
+                turns_a = test_case_a.get('turns', [])
+            else:
+                turns_a = []
+            
+            if isinstance(test_case_b, dict):
+                turns_b = test_case_b.get('turns', [])
+            else:
+                turns_b = []
             
             # Build conversation text
             initial_conversation = []
@@ -99,8 +106,20 @@ class DeepEvalAnalyzer:
                 if role == 'assistant' and i == len(turns_b) - 1:
                     model_b_response = content
             
-            # Get chatbot role
-            chatbot_role = test_case_a.get('chatbot_role', '')
+            # Fallback: If no turns found, try to get data from conversation directly
+            if not turns_a:
+                user_query = conv.get('user_query', '')
+                model_a_response = conv.get('model_a_response', '')
+                model_b_response = conv.get('model_b_response', '')
+                initial_conv = conv.get('initial_conversation', '')
+                if initial_conv and isinstance(initial_conv, str):
+                    initial_conversation = [initial_conv]
+            
+            # Get chatbot role - handle both dict and string
+            if isinstance(test_case_a, dict):
+                chatbot_role = test_case_a.get('chatbot_role', '')
+            else:
+                chatbot_role = conv.get('chatbot_role', '')
             
             # Get metrics results
             metrics_a = model_a.get('metrics', {})

@@ -23,7 +23,7 @@ def extract_metrics(result_dict):
                         score = metric.get('score', 0.0)
                         success = metric.get('success', False)
                         threshold = metric.get('threshold', 0.5)
-                        reason = metric.get('reason', '')[:300] if metric.get('reason') else ''
+                        reason = metric.get('reason', '') if metric.get('reason') else ''
                         
                         metrics[name] = {
                             "score": round(score, 4),
@@ -64,9 +64,9 @@ def extract_metrics(result_dict):
             threshold_match = re.search(r"threshold=([0-9.]+)", section)
             threshold = float(threshold_match.group(1)) if threshold_match else 0.5
             
-            # Extract reason (first 300 chars)
+            # Extract reason (full text)
             reason_match = re.search(r"reason='([^']*(?:''[^']*)*?)'", section, re.DOTALL)
-            reason = reason_match.group(1)[:300].replace("''", "'") if reason_match else ""
+            reason = reason_match.group(1).replace("''", "'") if reason_match else ""
             
             metrics[name] = {
                 "score": round(score, 4),

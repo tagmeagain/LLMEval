@@ -80,7 +80,7 @@ class DeepEvalAnalyzer:
                             name = metric.get('name', '')
                             score = metric.get('score', 0.0)
                             success = metric.get('success', False)
-                            reason = metric.get('reason', '')[:300] if metric.get('reason') else ''
+                            reason = metric.get('reason', '') if metric.get('reason') else ''
                             
                             metrics[name] = {
                                 "score": score,
@@ -117,9 +117,9 @@ class DeepEvalAnalyzer:
                     continue
                 success = success_match.group(1) == 'True'
                 
-                # Extract reason (first 300 chars)
+                # Extract reason (full text)
                 reason_match = re.search(r"reason='([^']*(?:''[^']*)*?)'", section, re.DOTALL)
-                reason = reason_match.group(1)[:300].replace("''", "'") if reason_match else ""
+                reason = reason_match.group(1).replace("''", "'") if reason_match else ""
                 
                 metrics[name] = {
                     "score": score,

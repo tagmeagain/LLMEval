@@ -10,11 +10,34 @@ import re
 
 
 def extract_metrics(result_dict):
-    """Extract ALL metrics from evaluation results - FIXED VERSION"""
-    metrics_str = str(result_dict)
+    """Extract ALL metrics from evaluation results - supports both dict and string formats"""
     metrics = {}
     
-    # Split by MetricData to find all metrics
+    # NEW FORMAT: Dictionary with test_results
+    if isinstance(result_dict, dict) and 'test_results' in result_dict:
+        try:
+            for test_result in result_dict['test_results']:
+                if 'metrics_data' in test_result:
+                    for metric in test_result['metrics_data']:
+                        name = metric.get('name', '')
+                        score = metric.get('score', 0.0)
+                        success = metric.get('success', False)
+                        threshold = metric.get('threshold', 0.5)
+                        reason = metric.get('reason', '')[:300] if metric.get('reason') else ''
+                        
+                        metrics[name] = {
+                            "score": round(score, 4),
+                            "pass": success,
+                            "threshold": threshold,
+                            "reason": reason
+                        }
+            return metrics
+        except Exception as e:
+            # Fall through to string parsing if dict parsing fails
+            pass
+    
+    # OLD FORMAT: String parsing (backward compatibility)
+    metrics_str = str(result_dict)
     metric_sections = metrics_str.split("MetricData(")
     
     for section in metric_sections[1:]:  # Skip first empty part

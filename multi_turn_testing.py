@@ -86,10 +86,10 @@ class MultiTurnTester:
         Args:
             judge_model: Model to use as judge (default: "gpt-4")
                         Options: "gpt-4", "gpt-4o", "gpt-3.5-turbo", etc.
-            use_all_metrics: If True, use all 7 metrics. If False, use basic 4 metrics (default: True)
+            use_all_metrics: If True, use all 8 metrics. If False, use basic 4 metrics (default: True)
         """
         if use_all_metrics:
-            # Use all 7 conversational metrics (3 custom + 4 built-in)
+            # Use all 8 conversational metrics (4 custom + 4 built-in)
             return [
                 # Custom Conversational GEval metrics (following official docs)
                 ConversationalGEval(
@@ -121,6 +121,19 @@ class MultiTurnTester:
                         "Assess whether the assistant addresses the user's needs effectively",
                         "Check if explanations are clear and useful for the user",
                         "Evaluate if the assistant goes beyond surface-level responses to truly help"
+                    ],
+                    evaluation_params=[TurnParams.CONTENT],  # Evaluates turn content
+                    model=judge_model,
+                ),
+                ConversationalGEval(
+                    name="Human Tonality",
+                    evaluation_steps=[
+                        "Evaluate if the response sounds natural and conversational, like how a real person would speak",
+                        "Check if the tone is warm, relatable, and has a human touch rather than robotic or overly formal",
+                        "Assess if the language style matches natural Indian English conversation patterns (e.g., use of 'actually', 'na', 'yaar' when appropriate, or empathetic expressions common in Indian communication)",
+                        "Identify any stilted, mechanical, or overly templated phrases that feel artificial",
+                        "Verify the response feels personally engaged rather than auto-generated or scripted",
+                        "Check for natural variations in sentence structure and vocabulary that humans typically use"
                     ],
                     evaluation_params=[TurnParams.CONTENT],  # Evaluates turn content
                     model=judge_model,

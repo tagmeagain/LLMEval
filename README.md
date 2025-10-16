@@ -55,17 +55,18 @@ python analysis.py evaluation_result/your_test_results.json
 
 ---
 
-## 📊 The 7 Metrics
+## 📊 The 8 Metrics
 
 Each conversation is evaluated on:
 
 1. **Coherence** - Logical flow and structure
 2. **Contextual Understanding** - Context awareness
 3. **Helpfulness** - Practical value
-4. **Knowledge Retention** - Memory tracking
-5. **Turn Relevancy** - Response relevance
-6. **Role Adherence** - Character consistency
-7. **Conversation Completeness** - Full resolution
+4. **Human Tonality** - Natural, human-like communication (Indian English focus)
+5. **Knowledge Retention** - Memory tracking
+6. **Turn Relevancy** - Response relevance
+7. **Role Adherence** - Character consistency
+8. **Conversation Completeness** - Full resolution
 
 Threshold: **0.5** for all metrics (Pass/Fail)
 
@@ -135,7 +136,7 @@ python run_analysis_with_log.py evaluation_result/test_results.json
 ## 🎯 Key Features
 
 ✅ **Automated Testing** - No manual evaluation needed  
-✅ **Comprehensive Metrics** - 7 quality dimensions  
+✅ **Comprehensive Metrics** - 8 quality dimensions including Human Tonality  
 ✅ **Model Comparison** - Side-by-side base vs fine-tuned  
 ✅ **Batch Processing** - Test multiple conversations at once  
 ✅ **Rich Analysis** - Charts, Excel reports, insights  

@@ -52,6 +52,7 @@ python analysis.py evaluation_result/test_results.json custom_output
 | Coherence | Logical flow | 0.5 |
 | Contextual Understanding | Context awareness | 0.5 |
 | Helpfulness | Practical value | 0.5 |
+| Human Tonality | Natural, human-like tone | 0.5 |
 | Knowledge Retention | Memory | 0.5 |
 | Turn Relevancy | Relevance | 0.5 |
 | Role Adherence | Character consistency | 0.5 |

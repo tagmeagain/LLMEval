@@ -1,7 +1,7 @@
 # DeepEval Metrics Guide
 
 ## Overview
-This guide explains all 7 metrics used to evaluate conversational AI models in this framework. Each metric is calculated using DeepEval's LLM-as-a-judge approach, where a powerful LLM (like GPT-4) evaluates the quality of responses.
+This guide explains all 8 metrics used to evaluate conversational AI models in this framework. Each metric is calculated using DeepEval's LLM-as-a-judge approach, where a powerful LLM (like GPT-4) evaluates the quality of responses.
 
 ---
 
@@ -12,6 +12,7 @@ This guide explains all 7 metrics used to evaluate conversational AI models in t
 | **Coherence** | Conversational GEval | 0.5 | Measures logical flow and structure |
 | **Contextual Understanding** | Conversational GEval | 0.5 | Evaluates context awareness |
 | **Helpfulness** | Conversational GEval | 0.5 | Assesses practical value |
+| **Human Tonality** | Conversational GEval | 0.5 | Evaluates natural, human-like communication |
 | **Knowledge Retention** | Multi-turn | 0.5 | Tracks information memory |
 | **Turn Relevancy** | Multi-turn | 0.5 | Checks response relevance |
 | **Role Adherence** | Multi-turn | 0.5 | Verifies role consistency |
@@ -152,7 +153,78 @@ Assistant: "You can reset it."
 
 ---
 
-## 4️⃣ Knowledge Retention
+## 4️⃣ Human Tonality [Conversational GEval]
+
+### What It Measures
+How natural, warm, and human-like the assistant's responses sound, with specific focus on Indian English communication patterns.
+
+### How It's Calculated
+The judge model evaluates:
+1. **Natural Language**: Does it sound like a real person speaking, not a robot?
+2. **Warmth & Relatability**: Is the tone warm and personally engaged?
+3. **Indian English Patterns**: Does it use natural Indian English expressions and communication styles?
+4. **Authenticity**: Absence of mechanical, templated, or overly scripted phrases
+5. **Personal Touch**: Feels like genuine human interaction
+6. **Natural Variation**: Uses varied sentence structures and vocabulary
+
+### Evaluation Criteria
+```
+- Evaluate if the response sounds natural and conversational, like how a real person would speak
+- Check if the tone is warm, relatable, and has a human touch rather than robotic or overly formal
+- Assess if the language style matches natural Indian English conversation patterns 
+  (e.g., use of 'actually', 'na', 'yaar' when appropriate, or empathetic expressions 
+  common in Indian communication)
+- Identify any stilted, mechanical, or overly templated phrases that feel artificial
+- Verify the response feels personally engaged rather than auto-generated or scripted
+- Check for natural variations in sentence structure and vocabulary that humans typically use
+```
+
+### Score Interpretation
+- **0.9 - 1.0**: Extremely natural and human-like
+- **0.7 - 0.9**: Good human touch, minor robotic elements
+- **0.5 - 0.7**: Somewhat natural, noticeable artificial phrases
+- **< 0.5**: Robotic, stilted, lacks human warmth
+
+### Example
+**High Human Tonality (0.95)**:
+```
+User: "I can't access my account"
+Assistant: "Oh no! I totally understand how frustrating that must be. Don't worry, 
+I'll help you sort this out right away. Let me just quickly check your account 
+details, and we'll get you back in, okay?"
+```
+✅ Natural flow, empathetic, conversational  
+✅ Uses phrases like "Oh no!", "totally understand", "sort this out"  
+✅ Warm and relatable tone
+
+**Low Human Tonality (0.35)**:
+```
+User: "I can't access my account"
+Assistant: "Your access issue has been noted. Please provide account credentials 
+for verification purposes. Standard protocol dictates identity confirmation 
+before proceeding with troubleshooting procedures."
+```
+❌ Robotic and formal  
+❌ Uses stiff phrases like "noted", "protocol dictates", "procedures"  
+❌ Lacks warmth and personal engagement
+
+### Indian English Patterns
+**Natural Indian English expressions that score higher:**
+- "Actually, let me check that for you"
+- "Don't worry na, I'll help you"
+- "Totally understand your concern"
+- "Let me quickly do this for you"
+- "Will be done soon, promise!"
+- Empathetic expressions: "Arey!", "Oh my!", "So sorry to hear that"
+
+**Overly formal (non-Indian) that scores lower:**
+- "Kindly provide the aforementioned details"
+- "As per company policy..."
+- "Your request has been duly noted"
+
+---
+
+## 5️⃣ Knowledge Retention
 
 ### What It Measures
 Whether the assistant remembers and retains information established earlier in the conversation.
@@ -197,7 +269,7 @@ Assistant: "Could you please provide your order number?"  ← Forgot #12345
 
 ---
 
-## 5️⃣ Turn Relevancy
+## 6️⃣ Turn Relevancy
 
 ### What It Measures
 Whether each assistant response is relevant to the corresponding user message.
@@ -240,7 +312,7 @@ Assistant: "Yes, you'll need the original receipt."  ✓ Relevant
 
 ---
 
-## 6️⃣ Role Adherence
+## 7️⃣ Role Adherence
 
 ### What It Measures
 Whether the assistant consistently maintains its assigned role throughout the conversation.
@@ -283,7 +355,7 @@ Assistant: "Ugh, shipping is always slow. I hate waiting too."  ✗ Unprofession
 
 ---
 
-## 7️⃣ Conversation Completeness
+## 8️⃣ Conversation Completeness
 
 ### What It Measures
 Whether the assistant fully addresses the user's intentions without leaving gaps or omissions.

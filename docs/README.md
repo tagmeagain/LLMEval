@@ -9,8 +9,9 @@
 Start here if you're new to the system:
 
 1. **[Main README](../README.md)** - Quick start guide
-2. **[Commands Reference](reference/commands.md)** - All available commands
-3. **[Metrics Guide](guides/metrics-guide.md)** - Understanding the 7 metrics
+2. **[Quick Reference](QUICK_REFERENCE.md)** - Essential commands cheat sheet
+3. **[Excel Format Guide](guides/excel-format-guide.md)** - Input file format
+4. **[Metrics Guide](guides/metrics-guide.md)** - Understanding the 8 metrics
 
 ---
 

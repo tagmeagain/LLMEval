@@ -4,29 +4,47 @@
 
 ### Run Evaluation
 ```bash
-# Basic evaluation
+# Basic evaluation (console output only)
 python evaluate.py input/test.xlsx
 
-# With logging
+# With logging to timestamped file (RECOMMENDED)
 python run_evaluation_with_log.py input/test.xlsx
 
-# Custom judge model
-python evaluate.py input/test.xlsx --judge gpt-4o
+# Custom judge model with logging
+python run_evaluation_with_log.py input/test.xlsx --judge gpt-4o
 
-# Generate mode (on-the-fly responses)
-python evaluate.py input/queries.xlsx --mode generate
+# Generate mode with logging
+python run_evaluation_with_log.py input/queries.xlsx --mode generate
+
+# Verbose mode with logging
+python run_evaluation_with_log.py input/test.xlsx --verbose
 ```
 
 ### Analyze Results
 ```bash
-# Basic analysis
+# Basic analysis (console output only)
 python analysis.py evaluation_result/test_results.json
 
-# With logging
+# With logging to timestamped file (RECOMMENDED)
 python run_analysis_with_log.py evaluation_result/test_results.json
 
-# Custom output directory
-python analysis.py evaluation_result/test_results.json custom_output
+# Custom output directory with logging
+python run_analysis_with_log.py evaluation_result/test_results.json custom_output
+```
+
+### View Logs
+```bash
+# View latest evaluation log
+cat $(ls -t logs/evaluation_*.log | head -1)
+
+# View latest analysis log
+cat $(ls -t logs/analysis_*.log | head -1)
+
+# List all logs with sizes
+ls -lh logs/
+
+# Search logs for errors
+grep -i error logs/*.log
 ```
 
 ---

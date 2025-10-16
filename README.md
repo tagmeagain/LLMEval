@@ -45,12 +45,20 @@ Create Excel file in `input/` with these columns:
 
 ### 5. Run Evaluation
 ```bash
+# Basic evaluation
 python evaluate.py input/your_test.xlsx
+
+# With logging to timestamped file
+python run_evaluation_with_log.py input/your_test.xlsx
 ```
 
 ### 6. Analyze Results
 ```bash
+# Basic analysis
 python analysis.py evaluation_result/your_test_results.json
+
+# With logging to timestamped file
+python run_analysis_with_log.py evaluation_result/your_test_results.json
 ```
 
 ---
@@ -86,6 +94,10 @@ After evaluation, you get:
 - Charts (metric comparison, heatmaps, improvement analysis)
 - Insights report (recommendations)
 
+**Logs (when using logging wrappers):**
+- `logs/evaluation_TIMESTAMP.log` - Complete evaluation log
+- `logs/analysis_TIMESTAMP.log` - Complete analysis log
+
 ---
 
 ## 📚 Documentation
@@ -112,23 +124,39 @@ After evaluation, you get:
 # Use pre-recorded responses
 python evaluate.py input/comparison_test.xlsx
 python analysis.py evaluation_result/comparison_test_results.json
+
+# With logging
+python run_evaluation_with_log.py input/comparison_test.xlsx
+python run_analysis_with_log.py evaluation_result/comparison_test_results.json
 ```
 
 ### Generate Responses and Evaluate
 ```bash
 # Models generate responses on-the-fly
 python evaluate.py input/queries.xlsx --mode generate
+
+# With logging
+python run_evaluation_with_log.py input/queries.xlsx --mode generate
 ```
 
 ### Custom Judge Model
 ```bash
 python evaluate.py input/test.xlsx --judge gpt-4
+
+# With logging
+python run_evaluation_with_log.py input/test.xlsx --judge gpt-4
 ```
 
-### With Logging
+### View Logs
 ```bash
-python run_evaluation_with_log.py input/test.xlsx
-python run_analysis_with_log.py evaluation_result/test_results.json
+# View latest evaluation log
+cat $(ls -t logs/evaluation_*.log | head -1)
+
+# View latest analysis log
+cat $(ls -t logs/analysis_*.log | head -1)
+
+# List all logs
+ls -lh logs/
 ```
 
 ---
